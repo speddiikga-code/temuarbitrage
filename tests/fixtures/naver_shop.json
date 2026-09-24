@@ -1,0 +1,12 @@
+{
+  "lastBuildDate": "Thu, 24 Sep 2026 10:00:00 +0900",
+  "total": 4,
+  "start": 1,
+  "display": 4,
+  "items": [
+    {"title": "소니 <b>WH-1000XM5</b> 무선 노이즈캔슬링 헤드폰", "link": "https://search.shopping.naver.com/catalog/1", "image": "https://img.example/1.jpg", "lprice": "389000", "hprice": "459000", "mallName": "네이버", "productId": "1", "productType": "1", "brand": "소니", "maker": "소니", "category1": "디지털/가전", "category2": "음향가전", "category3": "헤드폰", "category4": ""},
+    {"title": "실리콘 주방 뒤집개 &amp; 집게 세트", "link": "https://smartstore.naver.com/a/products/2", "image": "https://img.example/2.jpg", "lprice": "12900", "hprice": "", "mallName": "주방마켓", "productId": "2", "productType": "2", "brand": "", "maker": "", "category1": "생활/건강", "category2": "주방용품", "category3": "", "category4": ""},
+    {"title": "소니 WH-1000XM5 중고", "link": "https://used.example/3", "image": "", "lprice": "250000", "hprice": "", "mallName": "중고나라", "productId": "3", "productType": "4", "brand": "소니", "maker": "", "category1": "디지털/가전", "category2": "", "category3": "", "category4": ""},
+    {"title": "가격 없음", "link": "https://x.example/4", "image": "", "lprice": "", "hprice": "", "mallName": "x", "productId": "4", "productType": "2", "brand": "", "maker": "", "category1": "", "category2": "", "category3": "", "category4": ""}
+  ]
+}

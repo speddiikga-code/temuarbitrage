@@ -1,0 +1,34 @@
+# Defaults. Override any key with `--config my.toml` using the same layout.
+
+[fx]
+# Fallback KRW per 1 unit of currency, used only when live rates can't be fetched.
+KRW = 1
+USD = 1365
+CNY = 202
+
+[policy]
+ad_rate = 0.10         # share of the sale price spent on ads
+returns_rate = 0.03    # reserve for returns and cancellations
+target_margin = 0.15   # net margin a product must clear to count as an opportunity
+fx_buffer = 0.03       # cushion on foreign-currency costs
+undercut = 0.0         # list this fraction below the lowest matched competitor
+duty_free_usd = 150    # China -> Korea personal-use limit (US goods: 200)
+tariff_rate = 0.08     # applied only above the limit
+import_vat_rate = 0.10
+
+# fee_rate = everything the marketplace keeps, as a share of the sale price.
+[marketplaces.naver]
+# 판매수수료 3% (Naver Shopping inflow) + Naver Pay 주문관리수수료 up to 3.63%. Check your seller grade.
+fee_rate = 0.0663
+
+[marketplaces.coupang]
+# Category commission (commonly 10.8%) + 10% VAT on the fee. Check your category.
+fee_rate = 0.1188
+
+[sources.aliexpress]
+# The affiliate API does not return shipping; many Choice items ship free to Korea.
+default_shipping_krw = 0
+
+[matching]
+threshold = 0.55
+image_max_distance = 10

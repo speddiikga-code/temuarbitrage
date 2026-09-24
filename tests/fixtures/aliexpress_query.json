@@ -1,0 +1,19 @@
+{
+  "aliexpress_affiliate_product_query_response": {
+    "resp_result": {
+      "resp_code": 200,
+      "resp_msg": "Call succeeds",
+      "result": {
+        "current_page_no": 1,
+        "current_record_count": 2,
+        "total_record_count": 2,
+        "products": {
+          "product": [
+            {"product_id": 1005001, "product_title": "실리콘 주방 뒤집개 집게 세트", "target_sale_price": "4,210", "target_sale_price_currency": "KRW", "product_detail_url": "https://www.aliexpress.com/item/1005001.html", "promotion_link": "https://s.click.aliexpress.com/e/_1", "product_main_image_url": "https://ae01.example/1.jpg", "shop_id": 99},
+            {"product_id": 1005002, "product_title": "", "target_sale_price": "1000", "target_sale_price_currency": "KRW"}
+          ]
+        }
+      }
+    }
+  }
+}
