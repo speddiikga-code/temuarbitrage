@@ -1,7 +1,7 @@
 """Offers from a CSV file, for sites without an API you may automate (Temu, 1688, Taobao, wholesale sites).
 
 Required columns: title, price, url
-Optional: platform, currency (KRW), shipping (0), image_url, brand, model,
+Optional: platform, currency (KRW), shipping (0), image_url, brand, model, product_id,
           cross_border (default: true unless currency is KRW)
 """
 
@@ -37,7 +37,7 @@ class CsvSource:
         offers = []
         for line, row in enumerate(rows, start=2):
             try:
-                price = float(row["price"].replace(",", ""))
+                price = float((row["price"] or "").replace(",", ""))
                 shipping = float((row.get("shipping") or "0").replace(",", ""))
             except ValueError:
                 raise ConfigError(f"{self.path}:{line}: price/shipping must be numbers") from None
@@ -46,14 +46,15 @@ class CsvSource:
             offers.append(
                 Offer(
                     platform=(row.get("platform") or self.name).strip(),
-                    title=row["title"].strip(),
+                    title=(row["title"] or "").strip(),
                     price=price,
                     currency=currency,
-                    url=row["url"].strip(),
+                    url=(row["url"] or "").strip(),
                     shipping=shipping,
                     image_url=(row.get("image_url") or "").strip() or None,
                     brand=(row.get("brand") or "").strip() or None,
                     model=(row.get("model") or "").strip() or None,
+                    product_id=(row.get("product_id") or "").strip() or None,
                     cross_border=flag in _TRUE if flag else currency != "KRW",
                 )
             )

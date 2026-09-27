@@ -35,6 +35,7 @@ returns and customs, and later lists the product and handles orders. Phase 1 is 
 | `src/arbitrage/sources/` | Supplier and market connectors (AliExpress, Naver Shopping, CSV) | Claude |
 | `src/arbitrage/matching.py`, `images.py`, `glossary.py` | Same-product decision (model code, image hash, title, brand); English→Korean product glossary | Claude |
 | `src/arbitrage/pricing.py`, `default.toml` | Landed cost, fee math, price for margin | Claude |
+| `src/arbitrage/compliance.py`, `[compliance]` in `default.toml` | KC / 전파법 / import-restriction / brand keyword rules; flag or drop | Claude |
 | `src/arbitrage/scanner.py`, `report.py`, `cli.py` | Pipeline, CSV/JSON output, CLI | Claude |
 | `workbench/` (new) | Review UI: approve/reject matches, adjust costs, re-price | GPT (proposed) |
 
@@ -68,11 +69,21 @@ re-implement the fee math. Price for margin = `landed ÷ (1 − fee − ads − 
       "quotes": {"naver": {"marketplace": "naver", "list_price": 12900, "break_even": 11800,
                            "min_viable": 14500, "profit": 1234, "margin": 0.096, "viable": false}},
       "matches": [{"offer": { /* Offer */ }, "score": 0.83, "reasons": ["model WH1000XM5", "title 0.62"]}],
-      "notes": []
+      "notes": [],
+      "compliance": [                     // rules the product trips; empty when clean
+        {"category": "radio", "action": "flag", "reason": "전파법 적합성평가: ...",
+         "matched": "블루투스", "where": "market"}   // where: "source" or "market" title
+      ]
     }
+  ],
+  "dropped": [                            // supplier offers a `drop` rule removed before pricing
+    {"source": { /* Offer */ }, "compliance": [ /* as above, action "drop" */ ]}
   ]
 }
 ```
+
+Compliance categories are `kc_safety_cert`, `kc_safety_confirm`, `kc_supplier`, `radio`, `children`, `food`,
+`cosmetics`, `medical`, `batteries`, `restricted`, `brand`; a `--config` file can add more.
 
 `Offer` fields are `platform, title, price, currency, url, shipping, image_url, seller, brand, model,
 product_id, cross_border`.
