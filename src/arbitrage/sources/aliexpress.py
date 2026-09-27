@@ -100,7 +100,10 @@ class AliExpress:
             raise SourceError(f"AliExpress unreachable: {e}") from e
         if resp.status_code != 200:
             raise SourceError(f"AliExpress API {resp.status_code}: {resp.text[:200]}")
-        body = resp.json()
+        try:
+            body = resp.json()
+        except ValueError:
+            raise SourceError(f"AliExpress returned non-JSON: {resp.text[:200]}") from None
         if "error_response" in body:
             err = body["error_response"]
             raise SourceError(f"AliExpress {err.get('code')}: {err.get('msg')} {err.get('sub_msg') or ''}".strip())

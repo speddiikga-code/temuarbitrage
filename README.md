@@ -50,7 +50,7 @@ arbitrage price --cost 5.2 --currency USD --shipping 1.5 --market-price 19900
 
 ### CSV suppliers
 
-Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,cross_border`.
+Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,product_id,cross_border`. Give `product_id` so an item keeps the same id across scans even if its URL changes.
 `cross_border` defaults to true unless the currency is KRW.
 
 ```csv
