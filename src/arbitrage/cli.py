@@ -12,7 +12,7 @@ from .fx import FxRates
 from .images import ImageHasher
 from .models import Offer
 from .pricing import landed_cost, price_for_margin, quote
-from .report import format_table, write_csv
+from .report import format_table, to_json, write_csv, write_json
 from .scanner import ScanSettings, scan
 from .sources import AliExpress, CsvSource, NaverShopping
 
@@ -49,8 +49,12 @@ def _marketplaces(value: str, settings: Settings) -> list[str]:
 
 def _load(args) -> tuple[Settings, list[str]]:
     settings = load_settings(args.config)
+    if getattr(args, "glossary", None):
+        settings = replace(settings, match=replace(settings.match, glossary_path=args.glossary))
     if args.min_margin is not None:
         settings = replace(settings, policy=replace(settings.policy, target_margin=args.min_margin))
+    if getattr(args, "compliance", None):
+        settings = replace(settings, compliance=settings.compliance.with_mode(args.compliance))
     marketplaces = _marketplaces(args.sell_on, settings)
     return replace(settings, fee_rates={m: settings.fee_rates[m] for m in marketplaces}), marketplaces
 
@@ -68,11 +72,8 @@ def cmd_scan(args) -> int:
     fx = _fx(args, settings)
 
     hasher = None
-    if not args.no_images:
-        if ImageHasher.available():
-            hasher = ImageHasher()
-        else:
-            print("note: Pillow not installed, matching without images", file=sys.stderr)
+    if not args.no_images and ImageHasher.available():
+        hasher = ImageHasher()
 
     scan_settings = ScanSettings(
         policy=settings.policy,
@@ -81,23 +82,50 @@ def cmd_scan(args) -> int:
         per_item=args.per_item,
         source_limit=args.limit,
         market_limit=args.market_limit,
+        compliance=settings.compliance,
     )
     result = scan(args.query, sources, market, fx, scan_settings, hasher)
     for warning in result.warnings:
         print(f"warning: {warning}", file=sys.stderr)
+    if hasher is None and result.image_count:
+        why = "--no-images given" if args.no_images else "Pillow not installed (pip install 'arbitrage[images]')"
+        print(
+            f"note: {result.image_count} supplier products have photos but they were not compared: {why}. "
+            "Photos are the main signal for English titles vs. Korean listings.",
+            file=sys.stderr,
+        )
+    for offer, flags in result.dropped:
+        print(f"dropped: [{offer.platform}] {offer.title} — {'; '.join(f.label() for f in flags)}", file=sys.stderr)
 
     viable = [o for o in result.opportunities if o.best.viable]
     shown = result.opportunities if args.all else viable
     print(
         f"{result.source_count} supplier products checked, {len(result.opportunities)} found on "
-        f"{market.name}, {len(viable)} clear {settings.policy.target_margin:.0%} margin "
-        f"(FX: {fx.origin}, USD={fx.rate('USD'):,.0f} KRW)"
+        f"{market.name}, {len(viable)} clear {settings.policy.target_margin:.0%} margin"
+        + (f", {len(result.dropped)} dropped by compliance rules" if result.dropped else "")
+        + f" (FX: {fx.origin}, USD={fx.rate('USD'):,.0f} KRW)"
     )
+    flagged = [o for o in shown if o.flags]
+    if flagged:
+        print(f"note: {len(flagged)} shown need a compliance check (see the 'check' column and the CSV)")
     if shown:
         print(format_table(shown, args.top))
     if result.opportunities:
         write_csv(result.opportunities, args.out, marketplaces)
         print(f"wrote {len(result.opportunities)} rows to {args.out} (check each match by hand before listing)")
+    if args.json:
+        data = to_json(
+            result.opportunities,
+            query=args.query,
+            source_count=result.source_count,
+            warnings=result.warnings,
+            fx=fx,
+            policy=settings.policy,
+            fee_rates=settings.fee_rates,
+            dropped=result.dropped,
+        )
+        write_json(data, args.json)
+        print(f"wrote {args.json}")
     return 0
 
 
@@ -149,9 +177,15 @@ def main(argv: list[str] | None = None) -> int:
     p_scan.add_argument("--market-limit", type=int, default=100, help="market listings per search (default 100)")
     p_scan.add_argument("--per-item", action="store_true", help="search the market separately for each supplier product")
     p_scan.add_argument("--no-images", action="store_true", help="skip image comparison (faster, fewer matches)")
+    p_scan.add_argument("--glossary", help="CSV of extra English,Korean product terms for matching English titles")
     p_scan.add_argument("--all", action="store_true", help="also show matches below the target margin")
     p_scan.add_argument("--top", type=int, default=20, help="rows to print (default 20)")
     p_scan.add_argument("--out", default="opportunities.csv", help="CSV report path")
+    p_scan.add_argument("--json", help="also write results as JSON (schema in AGENTS.md)")
+    p_scan.add_argument(
+        "--compliance", choices=["flag", "drop", "off"],
+        help="KC/전파법/import rules: flag everything, drop everything flagged, or off (default: per rule in config)",
+    )
     _common(p_scan)
     p_scan.set_defaults(func=cmd_scan)
 

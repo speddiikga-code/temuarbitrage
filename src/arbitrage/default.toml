@@ -32,3 +32,132 @@ default_shipping_krw = 0
 [matching]
 threshold = 0.55
 image_max_distance = 10
+# CSV of extra English,Korean product terms (see README "English supplier titles"); "" = built-in glossary only.
+glossary_path = ""
+
+# Compliance: keyword rules that flag products Korea restricts. A keyword filter, not legal advice:
+# it names the likely requirement so you check before listing. `action` is "flag" (keep, show the
+# reason) or "drop" (leave the product out of the scan). `mode = "drop"` would force every rule to
+# drop; `enabled = false` turns the filter off. Korean keywords match as substrings, Latin ones as
+# whole words (write `~mah` for a substring). `requires_any` / `unless` narrow a rule.
+[compliance]
+enabled = true
+
+[compliance.kc_safety_cert]
+reason = "KC 안전인증 (전기용품안전관리법): mains-powered, needs certification before import"
+action = "flag"
+keywords = [
+  "전기장판", "전기요", "전기매트", "온수매트", "전기히터", "온풍기", "전기난로", "전기주전자", "전기포트",
+  "전기밥솥", "전기그릴", "전기냄비", "에어프라이어", "헤어드라이어", "드라이기", "고데기", "매직기",
+  "어댑터", "아답터", "멀티탭", "콘센트", "연장선", "전선", "220v",
+  "electric blanket", "heating pad", "electric kettle", "rice cooker", "air fryer", "hair dryer",
+  "curling iron", "straightener", "space heater", "power strip", "power adapter", "ac adapter", "wall adapter",
+  "extension cord",
+]
+
+[compliance.kc_safety_confirm]
+reason = "KC 안전확인 (전기용품안전관리법): declared before import"
+action = "flag"
+keywords = [
+  "충전기", "고속충전", "무선충전", "가습기", "공기청정기", "선풍기", "서큘레이터", "전기면도기", "전동면도기",
+  "전동칫솔", "안마기", "마사지기", "led등", "led 등", "led스탠드", "led 스탠드", "전기스탠드", "조명", "램프", "무드등", "전기모기채",
+  "charger", "humidifier", "air purifier", "electric fan", "shaver", "electric toothbrush", "massager",
+  "led light", "led lamp", "lamp", "night light", "desk light",
+]
+unless = ["shade", "전등갓", "램프갓"]
+
+[compliance.kc_supplier]
+reason = "KC 공급자적합성확인: small electrical/IT goods, self-declared before import"
+action = "flag"
+keywords = [
+  "usb", "허브", "키보드", "마우스", "이어폰", "헤드폰", "헤드셋", "스피커", "마이크", "웹캠", "모니터",
+  "hub", "keyboard", "mouse", "earphone", "earphones", "earbuds", "headphone", "headphones", "headset",
+  "speaker", "microphone", "webcam", "monitor",
+]
+unless = ["마우스패드", "마우스 패드", "장패드", "mouse pad", "mousepad", "케이블", "cable", "거치대", "스탠드", "stand", "holder"]
+
+[compliance.radio]
+reason = "전파법 적합성평가: radio/Bluetooth/Wi-Fi device needs KC 전파 certification"
+action = "flag"
+keywords = [
+  "블루투스", "무선", "와이파이", "wifi", "wi-fi", "리모컨", "드론", "스마트워치", "워치", "무전기",
+  "워키토키", "gps", "트래커", "rfid", "nfc", "지그비", "2.4g", "2.4ghz", "lte",
+  "bluetooth", "wireless", "cordless", "remote control", "drone", "smartwatch", "smart watch", "walkie",
+  "tracker", "zigbee", "lora", "rc car", "rc",
+]
+
+[compliance.children]
+reason = "어린이제품 안전특별법: children's product, needs KC 어린이제품 certification"
+action = "flag"
+keywords = [
+  "유아", "아동", "어린이", "키즈", "아기", "신생아", "영유아", "장난감", "완구", "피규어", "인형", "젖병",
+  "쪽쪽이", "유모차", "카시트", "물놀이", "학용품", "초등",
+  "kids", "kid", "children", "child", "baby", "toddler", "infant", "toy", "toys", "doll", "plush",
+  "pacifier", "stroller", "car seat", "montessori",
+]
+unless = ["아기자기", "펫", "강아지", "고양이", "반려", "pet", "dog", "cat", "adult", "성인", "child lock", "childproof", "child-proof"]
+
+[compliance.food]
+reason = "식품위생법/수입식품법: food or supplement, import registration required"
+action = "drop"
+keywords = [
+  "식품", "과자", "사탕", "젤리", "커피", "영양제", "비타민", "프로틴", "건강기능식품", "홍삼", "간식", "라면",
+  "snack", "candy", "gummy", "gummies", "coffee", "supplement", "supplements", "vitamin", "vitamins",
+  "protein powder", "food",
+]
+unless = [
+  "펫", "강아지", "고양이", "반려", "pet", "dog", "cat", "식품용", "식품등급", "food grade", "food-grade",
+  "머신", "메이커", "그라인더", "드리퍼", "필터", "컵", "머그", "텀블러", "포트", "용기", "보관", "밀폐", "저울", "슬라이서",
+  "maker", "machine", "grinder", "dripper", "filter", "cup", "mug", "tumbler", "pot", "scoop", "container",
+  "storage", "bag", "wrap", "sealer", "scale", "processor", "slicer", "chopper", "dehydrator", "warmer", "tray", "clip",
+]
+
+[compliance.cosmetics]
+reason = "화장품법: cosmetics need a responsible seller (책임판매업) and ingredient review"
+action = "flag"
+keywords = [
+  "화장품", "스킨케어", "로션", "크림", "세럼", "앰플", "마스크팩", "립스틱", "틴트", "파운데이션", "향수",
+  "샴푸", "염색약", "선크림", "미백", "cosmetic", "cosmetics", "skincare", "skin care", "serum", "lotion",
+  "lipstick", "lip tint", "foundation", "perfume", "shampoo", "hair dye", "sunscreen", "makeup", "whitening",
+]
+unless = ["아이스크림", "ice cream", "핸드크림 워머", "크림치즈", "크림 메이커"]
+
+[compliance.medical]
+reason = "의료기기법: medical device, import licence required"
+action = "drop"
+keywords = [
+  "의료기기", "체온계", "혈압계", "혈당", "콘택트렌즈", "컬러렌즈", "보청기", "임신테스트", "콘돔", "kf94", "kf80",
+  "덴탈마스크", "의료용", "치아교정", "thermometer", "blood pressure", "glucose", "contact lens", "contact lenses",
+  "hearing aid", "pregnancy test", "condom", "surgical mask", "medical", "orthodontic", "teeth whitening",
+]
+unless = ["grade", "등급", "주방", "요리", "온습도", "수온", "kitchen", "meat", "cooking", "food", "room", "aquarium", "수족관"]
+
+[compliance.batteries]
+reason = "lithium battery: KC 안전확인 and dangerous-goods shipping rules"
+action = "flag"
+keywords = ["리튬", "배터리", "보조배터리", "건전지", "충전식", "battery", "batteries", "power bank", "powerbank", "lithium", "li-ion", "18650", "~mah"]
+
+[compliance.restricted]
+reason = "restricted or prohibited import (weapons, tobacco, lasers, drugs)"
+action = "drop"
+keywords = [
+  "전자담배", "담배", "라이터", "레이저", "권총", "장총", "모의총", "비비탄", "bb탄", "에어소프트", "석궁", "삼단봉",
+  "전기충격기", "후추스프레이", "수갑", "대마", "마약", "도검", "너클",
+  "e-cigarette", "e-cig", "vape", "vaping", "cigarette", "cigarette lighter", "gas lighter", "arc lighter",
+  "torch lighter", "laser", "gun", "airsoft", "taser", "stun gun", "pepper spray", "handcuffs", "crossbow",
+  "cbd", "cannabis", "brass knuckles",
+]
+unless = ["각인", "engraved", "engraving", "glue", "massage", "nail", "heat gun", "spray gun", "water gun", "물총", "글루건", "마사지건", "레이저 레벨", "laser level", "laser pointer for cats"]
+
+# Brands with active counterfeit enforcement or exclusive Korean distributors. Selling them from a
+# supplier that isn't the brand is an IP risk. Edit this list for your own categories.
+[compliance.brands]
+action = "flag"
+blocklist = [
+  "nike", "adidas", "apple", "iphone", "airpods", "samsung", "galaxy", "sony", "dyson", "lego", "disney",
+  "gucci", "chanel", "louis vuitton", "supreme", "new balance", "north face", "stanley", "pokemon", "pokémon",
+  "sanrio", "hello kitty", "kakao friends", "line friends", "starbucks", "nintendo", "marvel",
+  "나이키", "아디다스", "애플", "아이폰", "에어팟", "삼성", "갤럭시", "소니", "다이슨", "레고", "디즈니", "구찌", "샤넬",
+  "루이비통", "슈프림", "뉴발란스", "노스페이스", "스탠리", "포켓몬", "산리오", "헬로키티", "카카오프렌즈", "라인프렌즈",
+  "스타벅스", "닌텐도", "마블", "뽀로로", "짱구",
+]

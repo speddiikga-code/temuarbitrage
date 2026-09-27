@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .compliance import ComplianceRules, Flag, check, should_drop
 from .errors import SourceError
 from .fx import FxRates
-from .matching import MatchSettings, match, model_codes, tokens
+from . import glossary as _glossary
+from .matching import MatchSettings, hangul_text, latin_words, match, model_codes, tokens
 from .models import Offer, Opportunity
 from .pricing import Policy, landed_cost, quote
 
@@ -20,6 +22,7 @@ class ScanSettings:
     per_item: bool = False
     source_limit: int = 50
     market_limit: int = 100
+    compliance: ComplianceRules = ComplianceRules(())
 
 
 @dataclass
@@ -27,17 +30,44 @@ class ScanResult:
     opportunities: list[Opportunity]
     source_count: int
     warnings: list[str] = field(default_factory=list)
+    # Supplier offers that came with a photo (so the CLI can say when photos went unused).
+    image_count: int = 0
+    # Supplier offers the compliance rules removed, with the flags that removed them.
+    dropped: list[tuple[Offer, list[Flag]]] = field(default_factory=list)
 
 
-def item_query(offer: Offer) -> str:
-    """Market search query for one supplier item: its model code if it has one, else its key words."""
+def item_query(offer: Offer, glossary: _glossary.Glossary = _glossary.DEFAULT) -> str:
+    """Market search query for one supplier item: its model code if it has one, else its key words.
+
+    An English title (Temu, AliExpress) becomes Korean key words through the glossary, since the
+    Korean market barely answers English queries; words the glossary lacks are left out.
+    """
     codes = model_codes(offer.title) | model_codes(offer.model or "")
     if codes:
         return max(codes, key=len)
+    if not hangul_text(offer.title):
+        korean = glossary.korean_query(latin_words(offer.title))
+        if korean:
+            return korean
     return " ".join(tokens(offer.title)[:6])
 
 
-def evaluate(source: Offer, market_offers: list[Offer], fx: FxRates, settings: ScanSettings, hasher=None) -> Opportunity | None:
+def _merge_flags(flags: list[Flag], more: list[Flag]) -> list[Flag]:
+    """Add flags for categories not already present (the source's own title wins)."""
+    seen = {f.category for f in flags}
+    return flags + [f for f in more if f.category not in seen and not seen.add(f.category)]
+
+
+def evaluate(
+    source: Offer, market_offers: list[Offer], fx: FxRates, settings: ScanSettings, hasher=None,
+    flags: list[Flag] | None = None,
+) -> Opportunity | None:
+    """Price one supplier offer against the market; None when nothing matches.
+
+    ``flags`` are the compliance flags already found on the source. The matched Korean listings
+    are checked too, since a Korean title often names the category an English Temu title hides.
+    The caller decides what a ``drop`` flag means (``scan`` leaves the product out).
+    """
     matches = []
     for candidate in market_offers:
         if candidate.url and candidate.url == source.url:
@@ -48,13 +78,17 @@ def evaluate(source: Offer, market_offers: list[Offer], fx: FxRates, settings: S
     if not matches:
         return None
 
+    flags = list(flags or [])
+    for candidate, _ in matches:
+        flags = _merge_flags(flags, check(candidate, settings.compliance, where="market"))
+
     landed, notes = landed_cost(source, fx, settings.policy)
     market_low = round(min(fx.to_krw(m.price + m.shipping, m.currency) for m, _ in matches))
     quotes = {
         name: quote(name, rate, landed, market_low, settings.policy)
         for name, rate in settings.fee_rates.items()
     }
-    return Opportunity(source, matches, landed, market_low, quotes, notes)
+    return Opportunity(source, matches, landed, market_low, quotes, notes, flags)
 
 
 def scan(query: str, sources: list, market, fx: FxRates, settings: ScanSettings, hasher=None) -> ScanResult:
@@ -70,18 +104,35 @@ def scan(query: str, sources: list, market, fx: FxRates, settings: ScanSettings,
     if not settings.per_item:
         market_cache[query] = market.search(query, settings.market_limit)
 
+    glossary = _glossary.load(settings.match.glossary_path or None)
     opportunities = []
+    dropped: list[tuple[Offer, list[Flag]]] = []
     for offer in supplier_offers:
-        market_query = item_query(offer) if settings.per_item else query
+        flags = check(offer, settings.compliance)
+        if should_drop(flags):
+            dropped.append((offer, flags))
+            continue
+        market_query = item_query(offer, glossary) if settings.per_item else query
         if market_query not in market_cache:
             try:
                 market_cache[market_query] = market.search(market_query, settings.market_limit)
             except SourceError as e:
                 warnings.append(f"{market.name} ({market_query}): {e}")
                 market_cache[market_query] = []
-        opportunity = evaluate(offer, market_cache[market_query], fx, settings, hasher)
-        if opportunity:
+        opportunity = evaluate(offer, market_cache[market_query], fx, settings, hasher, flags)
+        if opportunity is None:
+            continue
+        if should_drop(opportunity.flags):
+            dropped.append((offer, opportunity.flags))
+        else:
             opportunities.append(opportunity)
 
     opportunities.sort(key=lambda o: o.best.profit, reverse=True)
-    return ScanResult(opportunities, len(supplier_offers), warnings)
+    image_count = sum(1 for o in supplier_offers if o.image_url)
+    return ScanResult(
+        opportunities=opportunities,
+        source_count=len(supplier_offers),
+        warnings=warnings,
+        image_count=image_count,
+        dropped=dropped,
+    )

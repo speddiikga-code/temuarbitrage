@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
+from .compliance import ComplianceRules
 from .errors import ConfigError
 from .matching import MatchSettings
 from .pricing import Policy
@@ -20,6 +21,7 @@ class Settings:
     fee_rates: dict[str, float]
     match: MatchSettings
     aliexpress_shipping_krw: float
+    compliance: ComplianceRules = ComplianceRules(())
 
 
 def _merge(base: dict, override: dict) -> dict:
@@ -47,6 +49,7 @@ def load_settings(path: str | Path | None = None) -> Settings:
             fee_rates={name: float(m["fee_rate"]) for name, m in data["marketplaces"].items()},
             match=MatchSettings(**data["matching"]),
             aliexpress_shipping_krw=float(data["sources"]["aliexpress"]["default_shipping_krw"]),
+            compliance=ComplianceRules.from_config(data.get("compliance", {})),
         )
     except (KeyError, TypeError, ValueError) as e:
         raise ConfigError(f"bad config value: {e}") from e

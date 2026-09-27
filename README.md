@@ -44,12 +44,14 @@ arbitrage price --cost 5.2 --currency USD --shipping 1.5 --market-price 19900
 ```
 
 `scan` prints the best opportunities and writes every match to `opportunities.csv`
-(opens correctly in Excel). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
-`--all` (include thin margins), `--no-images`, `--config my.toml`.
+(opens correctly in Excel). Add `--json scan.json` for machine-readable output (schema in
+[AGENTS.md](AGENTS.md)). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
+`--all` (include thin margins), `--no-images`, `--compliance drop` (leave out everything the
+compliance rules flag), `--config my.toml`.
 
 ### CSV suppliers
 
-Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,cross_border`.
+Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,product_id,cross_border`. Give `product_id` so an item keeps the same id across scans even if its URL changes.
 `cross_border` defaults to true unless the currency is KRW.
 
 ```csv
@@ -58,12 +60,34 @@ temu,Silicone kitchen tongs set,3.20,USD,1.50,https://www.temu.com/...,https://.
 ```
 
 Temu has no public API and its terms forbid scraping, so the tool reads Temu products from
-a CSV you prepare instead of scraping the site.
+a CSV you prepare instead of scraping the site. **Fill in `image_url`**: for English titles the
+photo is the main signal (see below).
+
+### English supplier titles
+
+Temu and AliExpress titles are English, Naver listings are Korean. The tool bridges them with a
+built-in glossary of product words (`src/arbitrage/glossary.py`: about 800 terms and 60 brand
+names), no translation API needed:
+
+- `--per-item` searches Naver in Korean: `Silicone Kitchen Tongs Set` → `실리콘 주방집게 세트`.
+- Matching translates the English words and looks for them in the Korean title
+  (`match_reasons` shows `title 0.73 (translated)`). This signal is discounted on purpose, so a
+  translated title **alone never pairs two products**: it needs the same photo or a shared model
+  code as well. Words the glossary lacks count against the match, not for it.
+- Brands are compared across spellings (`Sony` = `소니`).
+
+Add your own words with `--glossary my_terms.csv` (or `glossary_path` under `[matching]` in your config):
+
+```csv
+english,korean
+frother,우유거품기|밀크프로더
+brand:Acme,아크메
+```
 
 ## How it decides
 
 **Same product?** (`matching.py`) The strongest signals are a shared model code (`WH-1000XM5`) and a near-identical product photo.
-Resellers usually reuse the supplier's photos. Title similarity and brand add weight.
+Resellers usually reuse the supplier's photos. Title similarity (through the glossary when one side is English) and brand add weight.
 A different pack size (`2개입` vs single), brand or model code rejects the pair outright.
 Title-only matching is strict on purpose. Generic goods mostly match through images, so run with Pillow installed.
 
@@ -85,6 +109,17 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 | Target margin | 15% | |
 | FX | live (open.er-api.com), fallback in config | +3% buffer on foreign currency |
 
+**Allowed to sell it?** (`compliance.py`) A keyword filter names the certification or import rule a product
+probably needs, so you check before listing. Categories: KC 안전인증 / 안전확인 / 공급자적합성 (electrical goods),
+전파법 (Bluetooth, Wi-Fi, remotes, drones), 어린이제품 (kids' goods, toys), food and supplements, cosmetics,
+medical devices (KF94 masks, thermometers), lithium batteries, restricted imports (vapes, lasers, weapons) and a brand
+blocklist. Each rule is `flag` (kept, shown in the `check` column, the CSV `compliance` column and the JSON) or
+`drop` (left out of the scan and listed on stderr). Food, medical and restricted drop by default; the rest flag.
+Both the supplier title and the matched Korean listings are checked, since an English Temu title often hides the
+category. Override per scan with `--compliance flag|drop|off`, or edit the keyword lists under `[compliance]`
+in a `--config` file (Korean keywords match as substrings, Latin ones as whole words; `~mah` forces a substring).
+This is a filter, not legal advice.
+
 ## Known limits
 
 - Naver prices exclude the competitor's shipping fee, and the AliExpress API doesn't return shipping (`default_shipping_krw`).
@@ -100,6 +135,9 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 4. Order sync: pull orders + 개인통관고유부호, create purchase tasks, push tracking numbers back.
 
 ## Development
+
+Two agents work on this repo in parallel: read [AGENTS.md](AGENTS.md) (rules, code owners, contracts)
+and [TASKS.md](TASKS.md) (who is doing what) first.
 
 ```bash
 pip install -e ".[dev]"
