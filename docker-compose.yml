@@ -1,0 +1,41 @@
+# Target stack for the operating core. Written on 2026-09-27 but not yet run anywhere: the development environment
+# had no Docker daemon. Nothing here connects to a real account; live adapters do not exist yet.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ops
+      POSTGRES_PASSWORD: ${OPS_DB_PASSWORD:?set OPS_DB_PASSWORD in .env}
+      POSTGRES_DB: ops
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ops -d ops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    command: ["migrate"]
+    environment:
+      OPS_DATABASE_URL: postgresql://ops:${OPS_DB_PASSWORD}@db:5432/ops
+      OPS_MANDATE: /app/mandate.toml
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Runs due schedules and workflow steps once, then exits; a scheduler (cron, systemd timer, or a `restart: always`
+  # loop with a sleep) starts it every minute. There is no long-running process by design.
+  worker:
+    build: .
+    command: ["worker", "--once", "--name", "worker-1"]
+    environment:
+      OPS_DATABASE_URL: postgresql://ops:${OPS_DB_PASSWORD}@db:5432/ops
+      OPS_MANDATE: /app/mandate.toml
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
