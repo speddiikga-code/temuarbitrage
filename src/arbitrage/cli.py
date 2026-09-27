@@ -12,7 +12,7 @@ from .fx import FxRates
 from .images import ImageHasher
 from .models import Offer
 from .pricing import landed_cost, price_for_margin, quote
-from .report import format_table, write_csv
+from .report import format_table, to_json, write_csv, write_json
 from .scanner import ScanSettings, scan
 from .sources import AliExpress, CsvSource, NaverShopping
 
@@ -98,6 +98,18 @@ def cmd_scan(args) -> int:
     if result.opportunities:
         write_csv(result.opportunities, args.out, marketplaces)
         print(f"wrote {len(result.opportunities)} rows to {args.out} (check each match by hand before listing)")
+    if args.json:
+        data = to_json(
+            result.opportunities,
+            query=args.query,
+            source_count=result.source_count,
+            warnings=result.warnings,
+            fx=fx,
+            policy=settings.policy,
+            fee_rates=settings.fee_rates,
+        )
+        write_json(data, args.json)
+        print(f"wrote {args.json}")
     return 0
 
 
@@ -152,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
     p_scan.add_argument("--all", action="store_true", help="also show matches below the target margin")
     p_scan.add_argument("--top", type=int, default=20, help="rows to print (default 20)")
     p_scan.add_argument("--out", default="opportunities.csv", help="CSV report path")
+    p_scan.add_argument("--json", help="also write results as JSON (schema in AGENTS.md)")
     _common(p_scan)
     p_scan.set_defaults(func=cmd_scan)
 
