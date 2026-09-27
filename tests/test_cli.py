@@ -67,3 +67,39 @@ def test_scan_json_matches_documented_contract(monkeypatch, tmp_path, fixtures_d
     assert opp["id"].startswith(opp["source"]["platform"] + ":")
     assert set(opp["quotes"]["naver"]) == {"marketplace", "list_price", "break_even", "min_viable", "profit", "margin", "viable"}
     assert {"offer", "score", "reasons"} == set(opp["matches"][0])
+
+
+def test_scan_warns_when_supplier_photos_are_not_compared(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "build_market", FakeMarket)
+    csv_path = tmp_path / "temu.csv"
+    csv_path.write_text(
+        "platform,title,price,currency,url,image_url\n"
+        "temu,Silicone kitchen tongs set,3.20,USD,https://temu/1,https://img/1.jpg\n",
+        encoding="utf-8",
+    )
+    code = cli.main(["scan", "tongs", "--source", f"csv:{csv_path}", "--no-images", "--offline-fx", "--out", str(tmp_path / "r.csv")])
+    assert code == 0
+    err = capsys.readouterr().err
+    assert "1 supplier products have photos but they were not compared" in err
+    assert "--no-images" in err
+
+
+def test_scan_accepts_a_glossary_csv(monkeypatch, tmp_path, capsys):
+    class KoreanMarket:
+        name = "naver"
+
+        def search(self, query, limit):
+            return [Offer("naver", "프로브니케이터 FB-2000X 정품", 15_900, "KRW", "https://n/1", cross_border=False)]
+
+    monkeypatch.setattr(cli, "build_market", KoreanMarket)
+    monkeypatch.setattr(cli.ImageHasher, "available", staticmethod(lambda: False))
+    csv_path = tmp_path / "temu.csv"
+    csv_path.write_text("title,price,currency,url,model\nFrobnicator,3.20,USD,https://temu/1,FB-2000X\n", encoding="utf-8")
+    glossary = tmp_path / "g.csv"
+    glossary.write_text("frobnicator,프로브니케이터\n", encoding="utf-8")
+    argv = ["scan", "x", "--source", f"csv:{csv_path}", "--offline-fx", "--out", str(tmp_path / "r.csv")]
+    # The shared model code alone (0.5) is just under the threshold; the glossary adds the title signal.
+    assert cli.main(argv) == 0
+    assert "1 supplier products checked, 0 found on naver" in capsys.readouterr().out
+    assert cli.main(argv + ["--glossary", str(glossary)]) == 0
+    assert "1 supplier products checked, 1 found on naver" in capsys.readouterr().out

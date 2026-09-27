@@ -33,7 +33,7 @@ returns and customs, and later lists the product and handles orders. Phase 1 is 
 |---|---|---|
 | `src/arbitrage/models.py` | `Offer`, `MatchResult`, `Quote`, `Opportunity` | shared contract |
 | `src/arbitrage/sources/` | Supplier and market connectors (AliExpress, Naver Shopping, CSV) | Claude |
-| `src/arbitrage/matching.py`, `images.py` | Same-product decision (model code, image hash, title, brand) | Claude |
+| `src/arbitrage/matching.py`, `images.py`, `glossary.py` | Same-product decision (model code, image hash, title, brand); English→Korean product glossary | Claude |
 | `src/arbitrage/pricing.py`, `default.toml` | Landed cost, fee math, price for margin | Claude |
 | `src/arbitrage/scanner.py`, `report.py`, `cli.py` | Pipeline, CSV/JSON output, CLI | Claude |
 | `workbench/` (new) | Review UI: approve/reject matches, adjust costs, re-price | GPT (proposed) |

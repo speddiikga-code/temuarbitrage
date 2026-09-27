@@ -59,12 +59,34 @@ temu,Silicone kitchen tongs set,3.20,USD,1.50,https://www.temu.com/...,https://.
 ```
 
 Temu has no public API and its terms forbid scraping, so the tool reads Temu products from
-a CSV you prepare instead of scraping the site.
+a CSV you prepare instead of scraping the site. **Fill in `image_url`**: for English titles the
+photo is the main signal (see below).
+
+### English supplier titles
+
+Temu and AliExpress titles are English, Naver listings are Korean. The tool bridges them with a
+built-in glossary of product words (`src/arbitrage/glossary.py`: about 800 terms and 60 brand
+names), no translation API needed:
+
+- `--per-item` searches Naver in Korean: `Silicone Kitchen Tongs Set` → `실리콘 주방집게 세트`.
+- Matching translates the English words and looks for them in the Korean title
+  (`match_reasons` shows `title 0.73 (translated)`). This signal is discounted on purpose, so a
+  translated title **alone never pairs two products**: it needs the same photo or a shared model
+  code as well. Words the glossary lacks count against the match, not for it.
+- Brands are compared across spellings (`Sony` = `소니`).
+
+Add your own words with `--glossary my_terms.csv` (or `glossary_path` under `[matching]` in your config):
+
+```csv
+english,korean
+frother,우유거품기|밀크프로더
+brand:Acme,아크메
+```
 
 ## How it decides
 
 **Same product?** (`matching.py`) The strongest signals are a shared model code (`WH-1000XM5`) and a near-identical product photo.
-Resellers usually reuse the supplier's photos. Title similarity and brand add weight.
+Resellers usually reuse the supplier's photos. Title similarity (through the glossary when one side is English) and brand add weight.
 A different pack size (`2개입` vs single), brand or model code rejects the pair outright.
 Title-only matching is strict on purpose. Generic goods mostly match through images, so run with Pillow installed.
 

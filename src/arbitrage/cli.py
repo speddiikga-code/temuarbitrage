@@ -49,6 +49,8 @@ def _marketplaces(value: str, settings: Settings) -> list[str]:
 
 def _load(args) -> tuple[Settings, list[str]]:
     settings = load_settings(args.config)
+    if getattr(args, "glossary", None):
+        settings = replace(settings, match=replace(settings.match, glossary_path=args.glossary))
     if args.min_margin is not None:
         settings = replace(settings, policy=replace(settings.policy, target_margin=args.min_margin))
     marketplaces = _marketplaces(args.sell_on, settings)
@@ -68,11 +70,8 @@ def cmd_scan(args) -> int:
     fx = _fx(args, settings)
 
     hasher = None
-    if not args.no_images:
-        if ImageHasher.available():
-            hasher = ImageHasher()
-        else:
-            print("note: Pillow not installed, matching without images", file=sys.stderr)
+    if not args.no_images and ImageHasher.available():
+        hasher = ImageHasher()
 
     scan_settings = ScanSettings(
         policy=settings.policy,
@@ -85,6 +84,13 @@ def cmd_scan(args) -> int:
     result = scan(args.query, sources, market, fx, scan_settings, hasher)
     for warning in result.warnings:
         print(f"warning: {warning}", file=sys.stderr)
+    if hasher is None and result.image_count:
+        why = "--no-images given" if args.no_images else "Pillow not installed (pip install 'arbitrage[images]')"
+        print(
+            f"note: {result.image_count} supplier products have photos but they were not compared: {why}. "
+            "Photos are the main signal for English titles vs. Korean listings.",
+            file=sys.stderr,
+        )
 
     viable = [o for o in result.opportunities if o.best.viable]
     shown = result.opportunities if args.all else viable
@@ -161,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     p_scan.add_argument("--market-limit", type=int, default=100, help="market listings per search (default 100)")
     p_scan.add_argument("--per-item", action="store_true", help="search the market separately for each supplier product")
     p_scan.add_argument("--no-images", action="store_true", help="skip image comparison (faster, fewer matches)")
+    p_scan.add_argument("--glossary", help="CSV of extra English,Korean product terms for matching English titles")
     p_scan.add_argument("--all", action="store_true", help="also show matches below the target margin")
     p_scan.add_argument("--top", type=int, default=20, help="rows to print (default 20)")
     p_scan.add_argument("--out", default="opportunities.csv", help="CSV report path")

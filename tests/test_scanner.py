@@ -71,3 +71,30 @@ def test_per_item_searches_market_by_model_code_once():
 
 def test_item_query_falls_back_to_key_words():
     assert item_query(offer("a", "[무료배송] 실리콘 주방 뒤집개 집게 세트 특가", 1)) == "실리콘 주방 뒤집개 집게 세트"
+
+
+def test_item_query_turns_english_title_into_korean_search():
+    assert item_query(offer("temu", "Silicone Kitchen Tongs Set Heat Resistant", 1)) == "실리콘 주방집게 세트 내열"
+    # Model codes still win, and untranslatable English stays English rather than becoming empty.
+    assert item_query(offer("temu", "Frobnicator WH-1000XM5", 1)) == "WH1000XM5"
+    assert item_query(offer("temu", "Frobnicator deluxe", 1)) == "frobnicator deluxe"
+
+
+def test_per_item_scan_searches_market_in_korean_and_counts_photos():
+    temu = Offer("temu", "Silicone kitchen tongs set", 3.2, "USD", "https://temu/1", image_url="https://t/1.jpg")
+    supplier = StaticSource("temu", [temu, offer("temu", "Frobnicator", 1.0, "USD")])
+    market = StaticSource("naver", [
+        Offer("naver", "실리콘 주방 집게", 12_900, "KRW", "https://n/1", image_url="https://n/1.jpg", cross_border=False),
+    ])
+    settings = ScanSettings(policy=Policy(), fee_rates={"naver": 0.0663}, per_item=True)
+
+    class SamePhoto:
+        def distance(self, a, b):
+            return 2
+
+    result = scan("tongs", [supplier], market, FX, settings, SamePhoto())
+    assert market.queries == ["실리콘 주방집게 세트", "frobnicator"]
+    assert [o.source.title for o in result.opportunities] == ["Silicone kitchen tongs set"]
+    assert result.image_count == 1
+    # Without the photo the same pair is left unmatched.
+    assert scan("tongs", [supplier], market, FX, settings).opportunities == []

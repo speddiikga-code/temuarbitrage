@@ -97,3 +97,57 @@ def test_image_threshold_is_configurable():
     a, b = offer("집게", image="a.jpg"), offer("요리 도구", image="b.jpg")
     loose = MatchSettings(image_max_distance=30)
     assert match(a, b, FakeHasher(12), loose).score > match(a, b, FakeHasher(12)).score
+
+
+# --- English supplier titles vs. Korean listings ---------------------------------------------
+
+
+def test_translated_similarity_scores_glossary_overlap():
+    from arbitrage.matching import cross_language_similarity, translated_similarity
+
+    assert translated_similarity("Silicone kitchen tongs set", "실리콘 주방 집게") > 0.7
+    assert translated_similarity("Silicone kitchen tongs set", "스텐 주방 가위 세트") < 0.3
+    assert translated_similarity("Frobnicator deluxe", "실리콘 주방 집게") == 0.0
+    assert translated_similarity("실리콘 집게", "실리콘 집게") == 0.0  # no English side
+    # Works in either direction.
+    assert cross_language_similarity("실리콘 주방 집게", "Silicone kitchen tongs set") > 0.7
+
+
+def test_english_title_alone_never_pairs_with_a_korean_listing():
+    result = match(offer("Silicone kitchen tongs set"), offer("실리콘 주방 집게 세트"))
+    assert result.score < 0.55
+    assert result.reasons[0].endswith("(translated)")
+
+
+def test_english_title_plus_same_photo_matches_korean_listing():
+    a = offer("Silicone kitchen tongs set", image="temu.jpg")
+    b = offer("실리콘 주방 집게", image="naver.jpg")
+    assert match(a, b, FakeHasher(3)).score >= 0.55
+    assert match(a, b, FakeHasher(8)).score >= 0.55  # similar, not identical photo
+    assert match(a, b, FakeHasher(40)).score < 0.55
+
+
+def test_unknown_english_vocabulary_gets_no_title_credit():
+    a = offer("Frobnicator deluxe pro", image="temu.jpg")
+    b = offer("실리콘 주방 집게", image="naver.jpg")
+    result = match(a, b, FakeHasher(2))
+    assert result.score < 0.55
+    assert "title 0.00" in result.reasons
+
+
+def test_english_and_korean_brand_spellings_agree():
+    assert match(offer("Wireless headphones", brand="Sony"), offer("무선 헤드폰", brand="소니")).score > 0
+    assert match(offer("Wireless headphones", brand="Sony"), offer("무선 헤드폰", brand="삼성")).score == 0
+
+
+def test_glossary_path_setting_adds_terms(tmp_path):
+    path = tmp_path / "g.csv"
+    path.write_text("frobnicator,프로브니케이터\n", encoding="utf-8")
+    a, b = offer("Frobnicator pro", image="a.jpg"), offer("프로브니케이터", image="b.jpg")
+    assert match(a, b, FakeHasher(2)).score < 0.55
+    assert match(a, b, FakeHasher(2), MatchSettings(glossary_path=str(path))).score >= 0.55
+
+
+def test_failed_image_download_is_reported():
+    result = match(offer("집게", image="a.jpg"), offer("집게", image="b.jpg"), FakeHasher(None))
+    assert "image unavailable" in result.reasons

@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 
 from .errors import SourceError
 from .fx import FxRates
-from .matching import MatchSettings, match, model_codes, tokens
+from . import glossary as _glossary
+from .matching import MatchSettings, hangul_text, latin_words, match, model_codes, tokens
 from .models import Offer, Opportunity
 from .pricing import Policy, landed_cost, quote
 
@@ -27,13 +28,23 @@ class ScanResult:
     opportunities: list[Opportunity]
     source_count: int
     warnings: list[str] = field(default_factory=list)
+    # Supplier offers that came with a photo (so the CLI can say when photos went unused).
+    image_count: int = 0
 
 
-def item_query(offer: Offer) -> str:
-    """Market search query for one supplier item: its model code if it has one, else its key words."""
+def item_query(offer: Offer, glossary: _glossary.Glossary = _glossary.DEFAULT) -> str:
+    """Market search query for one supplier item: its model code if it has one, else its key words.
+
+    An English title (Temu, AliExpress) becomes Korean key words through the glossary, since the
+    Korean market barely answers English queries; words the glossary lacks are left out.
+    """
     codes = model_codes(offer.title) | model_codes(offer.model or "")
     if codes:
         return max(codes, key=len)
+    if not hangul_text(offer.title):
+        korean = glossary.korean_query(latin_words(offer.title))
+        if korean:
+            return korean
     return " ".join(tokens(offer.title)[:6])
 
 
@@ -70,9 +81,10 @@ def scan(query: str, sources: list, market, fx: FxRates, settings: ScanSettings,
     if not settings.per_item:
         market_cache[query] = market.search(query, settings.market_limit)
 
+    glossary = _glossary.load(settings.match.glossary_path or None)
     opportunities = []
     for offer in supplier_offers:
-        market_query = item_query(offer) if settings.per_item else query
+        market_query = item_query(offer, glossary) if settings.per_item else query
         if market_query not in market_cache:
             try:
                 market_cache[market_query] = market.search(market_query, settings.market_limit)
@@ -84,4 +96,5 @@ def scan(query: str, sources: list, market, fx: FxRates, settings: ScanSettings,
             opportunities.append(opportunity)
 
     opportunities.sort(key=lambda o: o.best.profit, reverse=True)
-    return ScanResult(opportunities, len(supplier_offers), warnings)
+    image_count = sum(1 for o in supplier_offers if o.image_url)
+    return ScanResult(opportunities, len(supplier_offers), warnings, image_count)
