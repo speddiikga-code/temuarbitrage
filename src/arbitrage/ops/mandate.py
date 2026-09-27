@@ -175,6 +175,10 @@ def parse_mandate(data: dict[str, Any], path: str = "<memory>") -> Mandate:
     for word in values.get("permissions.external_actions", []) if values["permissions.external_actions"] != PENDING else []:
         if word not in EXTERNAL_ACTIONS:
             raise MandateError(f"permissions.external_actions: unknown action {word!r}; known: {', '.join(EXTERNAL_ACTIONS)}")
+    suppliers = values["connections.suppliers"]
+    if suppliers != PENDING and any("temu" in x.lower() for x in suppliers):
+        raise MandateError("connections.suppliers: Temu is not an approved supplier (consumer-checkout sourcing for resale is "
+                           "not permitted by its terms; eligibility report 2026-09-27). Use it as a CSV research source only.")
     if values["goals.target_realized_profit_krw"] == PENDING:
         values["goals.target_realized_profit_krw"] = 1_000_000
     return Mandate(environment=environment, path=str(path), values=values, schema_version=version,

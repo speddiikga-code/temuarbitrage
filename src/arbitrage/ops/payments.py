@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from arbitrage.pricing import IMPORT_BASES
+
 from .adapters import CONFIRMED
 from .audit import AuditTrail
 from .books import Books, Order
@@ -36,9 +38,15 @@ class Payments:
         self.audit = audit
 
     def create_order(self, mode: str, channel: str, external_order_id: str, sku: str, quantity: int, gross_amount: int,
-                     discount: int, tax_collected: int, expected_fee: int, processor: str, actor: str = "channel",
-                     placed_at: str | None = None) -> tuple[Order, Action]:
-        """Record a customer order and its payment action (idempotent on channel + external order id)."""
+                     discount: int, tax_collected: int, expected_fee: int, processor: str, import_mode: str,
+                     actor: str = "channel", placed_at: str | None = None) -> tuple[Order, Action]:
+        """Record a customer order and its payment action (idempotent on channel + external order id).
+
+        `import_mode` says how the goods reach the customer through customs: commercial_resale (we imported stock),
+        personal_use (구매대행: the customer is the importer) or genuine_sample. It is required and never defaulted.
+        """
+        if import_mode not in IMPORT_BASES:
+            raise OpsError(f"order {external_order_id}: import_mode must be one of {IMPORT_BASES}, got {import_mode!r}")
         with self.db.transaction() as tx:
             row = tx.fetchone("SELECT * FROM orders WHERE channel = ? AND external_order_id = ? AND mode = ?",
                               (channel, external_order_id, mode))
@@ -56,7 +64,8 @@ class Payments:
             window_end = parse_iso(placed_at) + timedelta(days=self.mandate.days("reserves.refund_reserve_days"))
             row = {"id": order_id, "channel": channel, "external_order_id": external_order_id, "sku": sku, "quantity": quantity,
                    "gross_amount": gross_amount, "discount": discount, "tax_collected": tax_collected, "expected_fee": expected_fee,
-                   "currency": "KRW", "placed_at": placed_at, "status": "placed", "return_window_ends": iso(window_end),
+                   "currency": "KRW", "import_mode": import_mode, "customs_code_provided": 0, "placed_at": placed_at,
+                   "status": "placed", "return_window_ends": iso(window_end),
                    "payment_id": action.id, "fulfillment_id": None, "mode": mode}
             tx.insert("orders", row)
             self.audit.record(tx, actor, "order_created", "orders", order_id, after=row)

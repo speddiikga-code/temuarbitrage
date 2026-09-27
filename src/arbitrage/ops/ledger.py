@@ -51,6 +51,7 @@ CHART: tuple[Account, ...] = (
     Account("5610", "Defects and write-offs", "expense", "debit", "variable"),
     Account("5620", "Chargebacks", "expense", "debit", "variable"),
     Account("5700", "Variable operating costs", "expense", "debit", "variable"),
+    Account("5720", "Samples", "expense", "debit", "variable"),
     Account("5800", "Returns provision expense", "expense", "debit", "provision"),
     Account("5810", "Dispute provision expense", "expense", "debit", "provision"),
     Account("6000", "Software", "expense", "debit", "fixed", fixed=True),
@@ -66,7 +67,7 @@ PAYABLE, DISPUTE_PROVISION, RETURNS_PROVISION, TAX_PAYABLE, ACCRUED_FEES = "2000
 CAPITAL = "3000"
 GROSS_SALES, DISCOUNTS, REFUNDS = "4000", "4100", "4200"
 COGS, FREIGHT, DUTIES, MARKETPLACE_FEES, PAYMENT_FEES, FX_COST = "5000", "5100", "5200", "5300", "5310", "5400"
-ADVERTISING, RETURN_HANDLING, WRITE_OFFS, CHARGEBACKS, VARIABLE_OPS = "5500", "5600", "5610", "5620", "5700"
+ADVERTISING, RETURN_HANDLING, WRITE_OFFS, CHARGEBACKS, VARIABLE_OPS, SAMPLES = "5500", "5600", "5610", "5620", "5700", "5720"
 RETURNS_PROVISION_EXPENSE, DISPUTE_PROVISION_EXPENSE = "5800", "5810"
 SOFTWARE, AI_CREDITS, INFRASTRUCTURE, OTHER_FIXED = "6000", "6100", "6200", "6300"
 

@@ -13,6 +13,7 @@ from .db import Database
 from .fulfillment import Fulfillment
 from .gateway import ActionGateway
 from .ledger import Ledger
+from .listings import Listings
 from .mandate import Mandate, load_mandate
 from .payments import Payments
 from .policy import Guardrails, PauseControl, PolicyController
@@ -35,6 +36,7 @@ class Core:
     purchasing: Purchasing
     payments: Payments
     fulfillment: Fulfillment
+    listings: Listings
     guardrails: Guardrails
     adapters: dict[str, Any]
 
@@ -66,9 +68,10 @@ def build(db: Database | str, mandate: Mandate | str | Path, adapters: dict[str,
     purchasing = Purchasing(db, gateway, governor, books, mandate, policy)
     payments = Payments(db, gateway, books, mandate, policy, audit)
     fulfillment = Fulfillment(db, gateway, books, mandate, policy, audit)
+    listings = Listings(db, gateway, mandate, policy)
     guardrails = Guardrails(db, mandate, ledger, pauses, registry)
     if adapters:
         with db.transaction() as tx:
             registry.register_simulated(tx, [n for n in adapters if n.startswith("simulated:")])
     return Core(db, mandate, audit, ledger, books, pauses, registry, policy, governor, gateway, purchasing, payments,
-                fulfillment, guardrails, adapters or {})
+                fulfillment, listings, guardrails, adapters or {})

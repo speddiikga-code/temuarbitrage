@@ -60,7 +60,9 @@ class Fulfillment:
         with self.db.transaction() as tx:
             return self.gateway.transition(tx, action_id, "packed", actor=actor)
 
-    def ship(self, action_id: str, shipping_cost_krw: int, actor: str = "system") -> Action:
+    def ship(self, action_id: str, shipping_cost_krw: int, actor: str = "system", customs_code: str | None = None) -> Action:
+        """Ship the parcel. A personal-use (구매대행) order needs the customer's 개인통관고유부호 here: it goes to the
+        carrier for this one parcel and is not stored, only the fact that it was supplied."""
         with self.db.transaction() as tx:
             action = self.gateway.get(tx, action_id)
             if action.state in ("shipped", "delivered", "completed"):
@@ -68,12 +70,18 @@ class Fulfillment:
             if action.state != "packed":
                 raise InvalidTransition(f"fulfillment {action_id} is {action.state}; pack it first")
             self.policy.evaluate(tx, action.request(), actor).raise_if_refused()
+            row, order = load_order(tx, action.reference_id)
+            if row["import_mode"] == "personal_use" and not customs_code:
+                raise OpsError(f"order {order.external_order_id}: a personal-use import needs the customer's 개인통관고유부호 to ship")
             adapter = self.gateway.adapter(tx, action)
-            result = adapter.create_shipment(action.id, action.reference_id, shipping_cost_krw)
+            result = adapter.create_shipment(action.id, action.reference_id, shipping_cost_krw,
+                                             **({"customs_code": customs_code} if customs_code else {}))
             if result.status == CONFIRMED:
                 action = self.gateway.transition(tx, action.id, "shipped", confirmation=result, actor=actor,
-                                                 payload={"tracking": result.reference, "shipping_cost_krw": shipping_cost_krw})
-                _, order = load_order(tx, action.reference_id)
+                                                 payload={"tracking": result.reference, "shipping_cost_krw": shipping_cost_krw,
+                                                          "customs_code_provided": bool(customs_code)})
+                if customs_code:
+                    tx.update("orders", "id", order.id, {"customs_code_provided": 1})
                 self.books.record_fulfillment(tx, order, shipping_cost_krw)
                 sync_status(tx, self.gateway, self.books, order.id)
                 return action

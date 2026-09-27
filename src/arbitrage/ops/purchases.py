@@ -25,6 +25,8 @@ from .policy import ActionRequest, PolicyController
 
 MAX_DELIVERY_DAYS = 30
 PRICE_TOLERANCE = 0.02
+# The Naver Shopping search API ended 2026-07-31; its data is unlicensed from 2026-08-01 (eligibility report, item 5).
+NAVER_SEARCH_API_END = "2026-08-01"
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,7 @@ class PurchaseProposal:
     category: str
     import_basis: str             # commercial_resale | genuine_sample (personal_use is never valid for resale)
     import_evidence: str | None = None   # reference for any claimed exemption or classification
+    price_evidence: dict[str, Any] | None = None   # {source, url, date}: where the resale price was seen, and when
     source: str = "initial_capital"
     purpose: str = "inventory"
     destination: str = "KR"
@@ -75,7 +78,8 @@ class Purchasing:
             "shipping": proposal.shipping, "fx_rate": proposal.fx_rate, "duty_krw": proposal.duty_krw,
             "category": proposal.category, "import_basis": proposal.import_basis, "import_evidence": proposal.import_evidence,
             "source": proposal.source, "purpose": proposal.purpose, "destination": proposal.destination,
-            "expected_resale_krw": proposal.expected_resale_krw, "notes": proposal.notes,
+            "expected_resale_krw": proposal.expected_resale_krw, "price_evidence": proposal.price_evidence,
+            "notes": proposal.notes,
         }
         request = ActionRequest(proposal.kind, proposal.idempotency_key, mode, proposal.amount_krw, proposal.amount,
                                 proposal.currency, proposal.supplier, proposal.category, proposal.sku, "sku", proposal.sku, payload)
@@ -101,7 +105,9 @@ class Purchasing:
                 problems.append("supplier reports no stock")
             if str(quote.get("currency", "")).upper() != action.currency.upper():
                 problems.append(f"quote currency {quote.get('currency')} differs from {action.currency}")
-            quoted = float(quote.get("unit_price", 0)) * int(p["quantity"]) + float(quote.get("shipping", 0))
+            if quote.get("shipping") is None:
+                problems.append("quote has no freight cost; landed cost needs a shipping quote, never a zero default")
+            quoted = float(quote.get("unit_price", 0)) * int(p["quantity"]) + float(quote.get("shipping") or 0)
             proposed = float(p["unit_price"]) * int(p["quantity"]) + float(p["shipping"])
             if quoted > proposed * (1 + PRICE_TOLERANCE):
                 problems.append(f"current price {quoted:.2f} {action.currency} is above the proposed {proposed:.2f}")
@@ -123,6 +129,8 @@ class Purchasing:
                 problems.append("zero duty needs import evidence (a classification or exemption reference); unknown is never zero")
             if not self.mandate.permits_category(p.get("category")):
                 problems.append(f"category {p.get('category')!r} not permitted by the mandate")
+            if p.get("purpose") != "sample":
+                problems += self._price_evidence_problems(p.get("price_evidence"))
             problems += self.governor.problems(tx, action.mode, action.amount_krw, p["purpose"], p["source"], action.sku)
             if problems:
                 self.gateway.transition(tx, action.id, "rejected", reason="; ".join(problems), actor=actor,
@@ -133,6 +141,16 @@ class Purchasing:
         if problems:  # raised after the rejection is committed
             raise OpsError("purchase rejected: " + "; ".join(problems))
         return action
+
+    @staticmethod
+    def _price_evidence_problems(evidence) -> list[str]:
+        """A resale price counts only with a source, a URL and a date, and not from the ended Naver search API."""
+        if not isinstance(evidence, dict) or not all(evidence.get(k) for k in ("source", "url", "date")):
+            return ["resale price needs evidence {source, url, date}; an unsourced price gap is not executable profit"]
+        source = str(evidence["source"]).lower()
+        if "naver" in source and "api" in source and str(evidence["date"]) >= NAVER_SEARCH_API_END:
+            return [f"price evidence from the Naver search API dated {evidence['date']} is unlicensed (API ended 2026-07-31)"]
+        return []
 
     # -- 3. reserve budget atomically --------------------------------------------------------------------
 
@@ -219,12 +237,16 @@ class Purchasing:
             return self.gateway.transition(tx, action_id, "shipped", confirmation=shipment, actor=actor)
 
     def receive(self, action_id: str, receiving, freight_krw: int = 0, duties_krw: int = 0, actor: str = "system") -> Action:
-        """Goods checked in: the receiving record becomes an inventory lot at landed cost."""
+        """Goods checked in: an inventory lot at landed cost, or an expense when the purchase was a sample."""
         with self.db.transaction() as tx:
             action = self.gateway.transition(tx, action_id, "received", confirmation=receiving, actor=actor,
                                              payload={"freight_krw": freight_krw, "duties_krw": duties_krw})
-            self.books.receive_inventory(tx, action.mode, action.id, action.sku, int(action.payload["quantity"]),
-                                         action.amount_krw, freight_krw, duties_krw, f"purchase:{action.id}:received")
+            args = (tx, action.mode, action.id, action.sku, int(action.payload["quantity"]), action.amount_krw, freight_krw,
+                    duties_krw, f"purchase:{action.id}:received")
+            if action.kind == "sample_purchase":
+                self.books.expense_sample(*args)
+            else:
+                self.books.receive_inventory(*args)
             return action
 
     def cancel(self, action_id: str, reason: str, actor: str = "system") -> Action:

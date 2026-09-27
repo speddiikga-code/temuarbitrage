@@ -202,7 +202,7 @@ def test_retained_profit_allocations_cannot_be_reused(db):
         o = Order("ord_1", "simulated:naver", "N1", "tongs", 1, 60_000, 0, 0, 0, SIM)
         tx.insert("orders", {"id": o.id, "channel": o.channel, "external_order_id": "N1", "sku": "tongs", "quantity": 1,
                              "gross_amount": 60_000, "discount": 0, "tax_collected": 0, "expected_fee": 0, "currency": "KRW",
-                             "placed_at": "2026-09-01T00:00:00+00:00", "status": "closed", "mode": SIM})
+                             "import_mode": "commercial_resale", "placed_at": "2026-09-01T00:00:00+00:00", "status": "closed", "mode": SIM})
         core.books.pay_supplier(tx, SIM, "pur_1", 20_000, 0, "pur_1:paid")
         core.books.receive_inventory(tx, SIM, "pur_1", "tongs", 1, 20_000, 0, 0, "pur_1:received")
         core.books.record_sale(tx, o)

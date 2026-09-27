@@ -73,7 +73,17 @@ FULFILLMENT = {
 }
 FULFILLMENT_CONFIRMATIONS = {"shipped": "shipment", "delivered": "delivery", "returned": "return_receipt"}
 
+LISTING = {
+    "proposed": {"verified", "rejected"},
+    "verified": {"listed", "rejected"},
+    "listed": {"delisted"},
+    "delisted": {"listed"},
+    "rejected": set(),
+}
+LISTING_CONFIRMATIONS = {"listed": "listing", "delisted": "delisting"}
+
 MACHINES: dict[str, tuple[dict, dict, str]] = {
+    "listing": (LISTING, LISTING_CONFIRMATIONS, "proposed"),
     "customer_payment": (PAYMENT, PAYMENT_CONFIRMATIONS, "created"),
     "supplier_purchase": (PURCHASE, PURCHASE_CONFIRMATIONS, "proposed"),
     "sample_purchase": (PURCHASE, PURCHASE_CONFIRMATIONS, "proposed"),

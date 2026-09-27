@@ -35,7 +35,8 @@ def proposal(key="po-1", qty=10, unit=3.2, shipping=1.5, **kw):
     amount_krw = round((unit * qty + shipping) * FX)
     defaults = dict(idempotency_key=key, supplier="simulated:aliexpress", sku="tongs", quantity=qty, unit_price=unit,
                     currency="USD", shipping=shipping, fx_rate=FX, amount_krw=amount_krw, duty_krw=round(amount_krw * 0.188),
-                    category="kitchen", import_basis="commercial_resale")
+                    category="kitchen", import_basis="commercial_resale",
+                    price_evidence={"source": "smartstore listing", "url": "https://smartstore.naver.com/x/products/1", "date": "2026-09-27"})
     defaults.update(kw)
     return PurchaseProposal(**defaults)
 
@@ -247,7 +248,7 @@ def run_happy_path(core, key="po-1", order_no="N-1001"):
     assert a.state == "received"
 
     order, payment = core.payments.create_order(SIM, "simulated:naver", order_no, "tongs", 1, 22_000, 0, 2_000, 1_500,
-                                                "simulated:naverpay", placed_at="2026-09-01T00:00:00+00:00")
+                                                "simulated:naverpay", "commercial_resale", placed_at="2026-09-01T00:00:00+00:00")
     auth = processor.authorize(payment.id, 22_000, "KRW")
     core.payments.apply_event(event(order.id, "authorization", auth.reference, amount=22_000))
     cap = processor.capture(payment.id, auth.reference, 22_000, "KRW")
@@ -355,7 +356,7 @@ def test_dispute_flow(core):
 
 
 def test_fulfillment_waits_for_captured_payment_and_stock(core):
-    order, payment = core.payments.create_order(SIM, "simulated:naver", "N-2", "tongs", 1, 22_000, 0, 2_000, 1_500, "simulated:naverpay")
+    order, payment = core.payments.create_order(SIM, "simulated:naver", "N-2", "tongs", 1, 22_000, 0, 2_000, 1_500, "simulated:naverpay", "commercial_resale")
     with pytest.raises(OpsError, match="nothing ships before capture"):
         core.fulfillment.create(order.id, "simulated:cj")
     processor = core.adapters["simulated:naverpay"]

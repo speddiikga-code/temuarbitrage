@@ -74,7 +74,7 @@ def test_purchase_sale_settlement_cycle_books_cogs_once_and_realizes_after_the_w
         o = order()
         tx.insert("orders", {"id": o.id, "channel": o.channel, "external_order_id": o.external_order_id, "sku": o.sku,
                              "quantity": 1, "gross_amount": 22_000, "discount": 0, "tax_collected": 2_000, "expected_fee": 1_500,
-                             "currency": "KRW", "placed_at": "2026-09-27T00:00:00+00:00", "status": "paid", "mode": SIM})
+                             "currency": "KRW", "import_mode": "commercial_resale", "placed_at": "2026-09-27T00:00:00+00:00", "status": "paid", "mode": SIM})
         books.record_sale(tx, o)
         books.record_sale(tx, o)  # redelivered capture webhook: no second posting
         bal = ledger.balances(tx, SIM)
@@ -124,7 +124,7 @@ def test_refund_dispute_and_restock(db, books):
         o = order(gross=22_000, tax=2_000)
         tx.insert("orders", {"id": o.id, "channel": o.channel, "external_order_id": o.external_order_id, "sku": o.sku,
                              "quantity": 1, "gross_amount": 22_000, "discount": 0, "tax_collected": 2_000, "expected_fee": 1_500,
-                             "currency": "KRW", "placed_at": "2026-09-27T00:00:00+00:00", "status": "paid", "mode": SIM})
+                             "currency": "KRW", "import_mode": "commercial_resale", "placed_at": "2026-09-27T00:00:00+00:00", "status": "paid", "mode": SIM})
         books.record_sale(tx, o)
         books.record_fulfillment(tx, o, 0)
         books.record_settlement(tx, o, 20_500, 1_500, 0, "settle:1")

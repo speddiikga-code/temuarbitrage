@@ -122,14 +122,26 @@ class SimulatedProcessor(SimulatedAdapter):
 class SimulatedCarrier(SimulatedAdapter):
     role = "logistics"
 
-    def create_shipment(self, action_id: str, order_id: str, cost: int) -> AdapterResult:
-        return self._result("shipment", "TRK", cost, "KRW", action_id=action_id, order_id=order_id)
+    def create_shipment(self, action_id: str, order_id: str, cost: int, customs_code: str | None = None) -> AdapterResult:
+        # The customs code is used for this parcel only; it never appears in the result or in any stored payload.
+        return self._result("shipment", "TRK", cost, "KRW", action_id=action_id, order_id=order_id,
+                            customs_code_provided=bool(customs_code))
 
     def confirm_delivery(self, action_id: str, tracking: str) -> AdapterResult:
         return self._result("delivery", "DLV", action_id=action_id, tracking=tracking)
 
     def receive_return(self, action_id: str, tracking: str) -> AdapterResult:
         return self._result("return_receipt", "RET", action_id=action_id, tracking=tracking)
+
+
+class SimulatedChannel(SimulatedAdapter):
+    role = "sales_channel"
+
+    def create_listing(self, action_id: str, sku: str, title: str, price_krw: int) -> AdapterResult:
+        return self._result("listing", "LST", price_krw, "KRW", action_id=action_id, sku=sku, title=title)
+
+    def delist(self, action_id: str, listing_reference: str) -> AdapterResult:
+        return self._result("delisting", "DEL", action_id=action_id, listing_reference=listing_reference)
 
 
 class LiveAdapterUnavailable:

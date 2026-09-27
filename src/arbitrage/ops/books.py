@@ -97,6 +97,15 @@ class Books:
                                      "remaining": quantity, "unit_cost": unit_cost, "received_at": now_iso(), "mode": mode})
         return lot_id
 
+    def expense_sample(self, tx: Tx, mode: str, purchase_id: str, sku: str, quantity: int, prepaid_krw: int,
+                       freight_krw: int, duties_krw: int, event_key: str) -> str:
+        """A sample arrived: it is an expense, never inventory (eligibility report, item 8)."""
+        total = prepaid_krw + freight_krw + duties_krw
+        lines = [dr(L.SAMPLES, total, f"{quantity} x {sku} sample"), cr(L.PREPAID, prepaid_krw)]
+        if freight_krw + duties_krw:
+            lines.append(cr(L.CASH, freight_krw + duties_krw, "freight and duties paid on arrival"))
+        return self._post(tx, "sample_received", f"sample {quantity} x {sku}", lines, event_key, mode, "purchase", purchase_id)
+
     # -- sales ---------------------------------------------------------------------------------------
 
     def record_sale(self, tx: Tx, order: Order) -> str:

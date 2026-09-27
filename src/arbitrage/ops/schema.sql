@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS orders (
   tax_collected BIGINT NOT NULL DEFAULT 0,   -- VAT remitted to the authorities, never revenue
   expected_fee BIGINT NOT NULL DEFAULT 0,    -- marketplace fee accrued at capture, trued up at settlement
   currency TEXT NOT NULL DEFAULT 'KRW',
+  import_mode TEXT NOT NULL,      -- commercial_resale | personal_use (구매대행) | genuine_sample; required, never defaulted
+  customs_code_provided INTEGER NOT NULL DEFAULT 0,  -- 개인통관고유부호 was passed to the carrier; the code itself is never stored
   placed_at TEXT NOT NULL,
   status TEXT NOT NULL,           -- placed | paid | fulfilled | settled | closed | refunded | disputed
   return_window_ends TEXT,
