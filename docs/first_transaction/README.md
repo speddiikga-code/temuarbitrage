@@ -29,11 +29,11 @@ import modes and the credentials checklist; the compliance filter (PR #2); the p
 | Listing title (KR) | 편안한 강아지 가방 애완동물 크로스바디 숄더백 야외 여행 휴대용 고양이 강아지 슬링 캐리어 가방 | as shown on the search card |
 | Price shown to Korea | **₩9,160** (promo price on the search card); seller list price ₩8,950 | AliExpress public search, ship-to KR, KRW, observed 2026-09-27 11:16 and 11:18 UTC (`observed_aliexpress.csv`) |
 | Orders / rating / program | 3,728 orders, 4.7 stars, **Choice** (platform-managed shipping) | same observation |
-| Shipping to Korea | **not observed** (product pages are captcha-walled from the research container). Choice items ship free above a threshold reported as about ₩10,000; below it a fee reported as ₩1,300 applies. Read the exact amount at checkout. | reported, unverified |
-| Delivery estimate | Choice to Korea is reported at 5-10 calendar days; read the date promised at checkout | reported, unverified |
-| Quantity | **1 unit** (one colour; pick the colour shown in the most reviews). A second unit only if the listing offers two sizes and the owner wants to compare them. | decision |
-| Expected charge | ₩9,160 + freight (₩0-1,300 expected) = **about ₩9,200-10,500**, billed in KRW by AliExpress at its own rate; the card statement is the ledger amount | estimate |
-| Customs | Parcel value about USD 7-8, far under the USD 150 personal-use limit. The owner enters their own 개인통관고유부호 at checkout. Import mode **C (sample)**: the unit is for inspection and listing photos and is **not sold**. | rule, see PR #4 section 3 |
+| Shipping to Korea | **not observed** (product pages are captcha-walled from the research container). Choice orders in Korea ship free from about USD 7.5 (₩10,000) since late 2025; below that a ₩1,300 per-item fee has applied since 2024-06-03, and users report the free badge sometimes vanishing at checkout. At ₩9,160 this order most likely pays **₩1,300**. Read the exact amount at checkout. | namu.wiki via search snippets, unverified (section 8.6) |
+| Delivery estimate | Choice to Korea: 3-5 days announced by AliExpress (Weihai hub + CJ대한통운), 5-7 days reported by users; read the date promised at checkout | reported, unverified |
+| Quantity | **1 unit** (one colour; pick the colour shown in the most reviews). Two units (₩18,320) would clear the reported free-shipping threshold and give a second colour to compare; the owner may choose that at checkout, the sheet's default stays 1. | decision |
+| Expected charge | ₩9,160 + freight (₩1,300 expected, ₩0 if the free badge holds) = **about ₩9,200-10,500**, billed in KRW by AliExpress (간편결제) or in USD on a card with the card's own conversion; the card statement is the ledger amount | estimate |
+| Customs | Parcel value about USD 7-8, far under the USD 150 personal-use limit. The owner's own 개인통관고유부호 is stored on the AliExpress delivery address (배송지 > 통관정보); the recipient name must match the name registered on the code exactly, or clearance stalls. Import mode **C (sample)**: the unit is for inspection and listing photos and is **not sold**. | rule, see PR #4 section 3 and section 8.4 |
 | What this unit is for | Prove the path (order, payment, freight, delivery days, 목록통관 clearance, packaging) and produce the first ledger entry. The unit is inspected and kept; it is **not resold**: a parcel cleared duty-free as 자가사용 may not legally be sold (관세법 제269조·제270조, section 8). | purpose |
 
 ### Why this item for the process test
@@ -170,8 +170,7 @@ COGS, never revenue. Fill the bracketed values from the AliExpress order page an
   the operating core uses the Affiliate and Dropshipping APIs (PR #4 section 2). The Danawa fetch is likewise
   one-off research.
 - **Skeptic checks** (one per shortlisted item: market low, supplier listing, compliance, return risk) and
-  the sourced customs summary are in section 8. Still running at the time of writing: the safety-scope summary
-  and the channel-operations summary; they are appended when they finish.
+  the sourced customs, safety-scope and channel-operations summaries are in section 8.
 
 ---
 
@@ -185,11 +184,11 @@ The full path with sources is PR #4 section 6. Condensed, with what only the own
 | 1 | 사업자등록 (홈택스, 개인사업자, 간이과세, 업종 525105 해외직구대행업) | **owner** | Naver's overseas-product selling rights are 사업자-only since 2026-06-24 |
 | 2 | Naver Smart Store seller signup as 사업자 (사업자등록증, 통장사본, phone check; about 3 business days) | **owner** | |
 | 3 | 판매자정보 › 상품판매권한 신청: consent to 해외상품판매; print the 구매안전서비스 이용확인증 | **owner** | instant |
-| 4 | 통신판매업 신고 at 정부24 with that certificate; enter the number in the seller center | **owner** | required by Naver at 50 구매확정, by Coupang at signup |
+| 4 | 통신판매업 신고 at 정부24 with that certificate; enter the number in the seller center | **owner** | 등록면허세 ₩40,500 a year in large cities; exempt for a 간이과세자 or under 50 transactions a year, but file anyway (Coupang and buyers look for the number) |
 | 5 | Sample arrives: inspection (section 4), own photos, final spec, hand-checked Naver price with URL and date | thread | decides go / no-go for listing |
 | 6 | List on Naver: '해외' prefix, overseas 출고지, 구매대행 disclosures (delivery period, duty above USD 150 on the buyer, 7-day 청약철회, real return cost), price at or above the Naver minimum viable price (section 2) | thread drafts, **owner** publishes | listing copy is task 5 |
-| 7 | First order: read the buyer's 개인통관고유부호 from the order, place the AliExpress order to the buyer's address, enter the tracking number within 3 business days | thread prepares, **owner** pays until the mandate allows API payment | mode A: the buyer is the importer |
-| 8 | Buyer receives, 구매확정, Naver settles one business day after order end; reconcile settlement against the supplier charge, fees, FX and a returns reserve | core | profit is recognised only on settled cash |
+| 7 | First order: read the buyer's 개인통관고유부호 from the order, add the buyer as a new AliExpress 배송지 with the name exactly as registered on the code, order with tracked shipping, enter the tracking number within 3 business days | thread prepares, **owner** pays until the mandate allows API payment | mode A: the buyer is the importer; Naver holds orders with missing tracking indefinitely |
+| 8 | Buyer receives; press 구매확정 요청 in 판매자센터 (buyer has 5 days, then it auto-confirms); Naver settles one business day after 구매확정; reconcile settlement against the supplier charge, fees, FX and a returns reserve | core | with an overseas 출고지 the automatic 구매확정 is 45 days after 발송처리, so without the request the cash cycle is about seven weeks; profit is recognised only on settled cash |
 
 Calendar: about two weeks, dominated by 사업자등록, Naver review and 통신판매업 신고. The sample (step 0) can
 be ordered today and arrives while the registrations run.
@@ -271,3 +270,57 @@ Naver Commerce API.
   8%, rubber 8%, textile made-up articles 10%, steel articles 8% (한중FTA lower with a certificate of origin;
   the HS heading of any specific item is unverified).
 - Not reachable: customs.go.kr FAQ pages, consumer.go.kr FAQ on resale of duty-free goods (503).
+
+### 8.5 Product-safety scope for a 구매대행 seller (sourced; kats.go.kr and safetykorea.kr mostly unreachable)
+
+- 전안법 has four tiers (안전인증, 안전확인, 공급자적합성확인, 안전기준준수). A 구매대행업자 may not broker 안전인증
+  or 안전확인 products without KC (제10조②, 제19조②) except the products on 시행규칙 별표 13 (the 구매대행 특례,
+  downloaded from law.go.kr): KATS counts 241 안전관리대상 items, 215 allowed without KC, 35 not (23 안전인증 +
+  12 안전확인), in force since 2018-07-01 with no change found. 공급자적합성 products and 안전확인 생활용품 may be
+  구매대행'd without KC; 안전기준준수 products (가정용 섬유제품, 가죽제품, 합성수지제품, 우산·양산, 가구...) never
+  carry KC but must meet the standard and labeling.
+- Disclosure duty (전안법 제36조) for every 안전관리대상 product sold by 구매대행: state on the page that the
+  product is distributed via 구매대행 and is an 안전관리대상 product, plus any KC number. Naver's product form
+  has a KC field with 'KC인증 없음 → 구매대행'; Coupang's 상품정보고시 has an equivalent field.
+- 어린이제품 안전특별법 제30조 bars 구매대행 of any 안전관리대상 어린이제품 (for ages 13 and under) without
+  certification; toy-like goods need a '14세 이상' marking.
+- 전파법 제58조의2 (시행 2026-01-02) has no 구매대행 clause; the 2014 brokering ban was suspended and deleted in
+  2015 (deletion date likely, not verified). Whether a 구매대행 seller is a '판매하려는 자' when the consumer
+  imports is not settled by any official source found. Selling a personally imported device requires 적합성평가
+  (법제처 해석 21-0097).
+- Batteries: 보조배터리 is 안전확인 and not a 특례 product, so KC 안전확인 is required. Food-contact goods (기구,
+  용기·포장) need 수입식품등 인터넷 구매대행업 registration with the regional 식약청. Water-contact fittings need
+  수도법 KC 위생안전기준. 의약품, 의료기기 구매대행 is illegal; cosmetics need 화장품책임판매업.
+- The May-2024 "80 items blocked" announcement was withdrawn on 2024-05-20; the November 2025 amendments to
+  제품안전기본법 and 어린이제품법 bring foreign platforms under 안전성조사 and delisting, not a new seller duty.
+- Open: LED desk lamp tier; whether plain shower heads are 수도꼭지류; exact product lists of 합성수지제품 and
+  가죽제품 standards; the 2025-12-03 시행규칙 개정안 contents. For this sample (fabric pet carrier) none applies.
+
+### 8.6 Channel operations (sourced from seller guides and fee notices; naver.com and coupang.com unreachable)
+
+- **Naver Smart Store first, Coupang second.** Naver signs up a 사업자 판매자 with 사업자등록증, 통장사본 and phone
+  check, issues the 구매안전서비스 이용확인증 that 통신판매업 신고 needs, and pays 구매확정 + 1 business day.
+  Coupang is 사업자-only (a 간이과세자 may join without the 신고증 from June 2026), approves in 1-3 business
+  days, charges 4-10.9% by category plus ₩55,000 a month above ₩1,000,000 sales, and pays 70% about three weeks
+  after the week's Sunday and 30% two months later.
+- Naver fees since 2025-06-02: 판매수수료 3.003% (VAT incl.) on every Naver-channel sale, plus 주문관리수수료 by
+  seller grade since 2025-10-01 (new seller 일반 3.63%, 영세 1.947% once the NTS grade applies). A new seller's
+  total is 6.633%, which the repo's 0.0663 Naver fee already matches. 스타트 제로수수료 closed 2025-06-30.
+- Automatic 구매확정 with an overseas 출고지 is 45 days after 발송처리 (8 days after delivery for tracked domestic
+  parcels); orders with missing or abnormal tracking are held indefinitely since 2024-03-20. Use 구매확정 요청
+  after delivery. 빠른정산 needs three consecutive months of 20+ orders.
+- The buyer's 개인통관고유부호 is collected on the Naver order form when the product's '개인통관고유부호 수집' is
+  set to 설정함; the seller reads it from the order. AliExpress stores the code per delivery address; the
+  recipient name must match the code holder's registered name exactly.
+- AliExpress Choice in Korea: free shipping for Choice orders from about USD 7.5 (₩10,000) since late 2025;
+  otherwise ₩1,300 per item (since 2024-06-03); 3-7 days via CJ대한통운; only 5 free returns a month since
+  2025-06. Payment: Korean cards (USD billing with about 0.2-0.3% overseas fee plus the network's conversion),
+  네이버페이, 카카오페이, 토스페이 billed in KRW.
+- Registration facts: 사업자등록 within 20 days of starting, 업종코드 525105 해외직구대행업, taxable revenue is the
+  대행수수료 only, 간이과세 allowed; 통신판매업 신고 on 정부24 with 등록면허세 ₩40,500 (large cities), exempt for a
+  간이과세자 or under 50 transactions a year; 관세청 구매대행업자 registration only from ₩1 billion of goods a year.
+- Required listing disclosures: seller identity (상호, 대표자, 주소, 전화, 이메일, 사업자등록번호, 통신판매업
+  신고번호), 원산지, delivery period, real international shipping cost, customs class, domestic return address,
+  that the item ships from overseas, that duty above the exemption falls on the buyer, and the real return cost.
+- Open: whether an 개인판매자 can list 구매대행 items on Naver (blogs say yes since 2026-06-24 the overseas right is
+  사업자-only, so plan on 사업자); exact 주문관리수수료 by payment method; Coupang's rumoured 2.9% 결제수수료.
