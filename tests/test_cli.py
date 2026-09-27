@@ -19,7 +19,7 @@ def test_price_command(capsys):
     code = cli.main(["price", "--cost", "5", "--currency", "USD", "--shipping", "1", "--market-price", "19900", "--offline-fx"])
     out = capsys.readouterr().out
     assert code == 0
-    assert "landed cost: ₩8,436" in out  # 6 USD x 1365 x 1.03
+    assert "landed cost: ₩9,976" in out  # 6 USD x 1365 x 1.03, + 8% duty and 10% VAT: resale imports are taxed at any value
     assert "naver" in out and "coupang" in out
     assert "at ₩19,900" in out
 

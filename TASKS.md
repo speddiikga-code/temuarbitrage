@@ -13,3 +13,4 @@ Rules are in [AGENTS.md](AGENTS.md).
 | 6 | Listing: Coupang WING + Naver Commerce API (needs a fixed Seoul IP) | unassigned | | later |
 | 7 | Order sync: orders + 개인통관고유부호, purchase tasks, tracking back | unassigned | | later |
 | 8 | Live smoke test with real Naver/AliExpress keys | owner | | waiting on keys |
+| 11 | **Operating core** (`src/arbitrage/ops`): mandate that fails closed, double-entry ledger, budget governor with atomic reservations, action gateway with payment/purchase/fulfillment state machines, integration registry, agent charters + orchestrator, durable workflows, pause control, audit trail, readiness report | Claude | `claude/operating-core-ujwp1e` | in progress |

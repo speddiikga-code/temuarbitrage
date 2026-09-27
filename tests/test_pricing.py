@@ -38,16 +38,37 @@ def test_impossible_margin_is_reported():
 
 
 def test_landed_cost_converts_and_adds_fx_buffer():
-    cost, notes = landed_cost(offer(10, shipping=2), FX, Policy(fx_buffer=0.03))
+    cost, notes = landed_cost(offer(10, shipping=2), FX, Policy(fx_buffer=0.03, import_basis="personal_use"))
     assert cost == pytest.approx(12 * 1365 * 1.03, abs=1)
-    assert notes == []
+    assert "not valid for resale" in notes[0]
 
 
-def test_landed_cost_adds_duty_and_vat_over_150_usd():
-    cost, notes = landed_cost(offer(200), FX, Policy(fx_buffer=0, tariff_rate=0.08, import_vat_rate=0.10))
+def test_landed_cost_adds_duty_and_vat_over_150_usd_even_for_personal_use():
+    policy = Policy(fx_buffer=0, tariff_rate=0.08, import_vat_rate=0.10, import_basis="personal_use")
+    cost, notes = landed_cost(offer(200), FX, policy)
     goods = 200 * 1365
     assert cost == pytest.approx(goods + goods * 0.08 + goods * 1.08 * 0.10, abs=1)
     assert "duty-free" in notes[0]
+
+
+def test_same_basket_resale_below_150_usd_is_taxed_but_personal_use_is_not():
+    # Korea Customs Service: goods bought for domestic resale are declared and taxed regardless of amount.
+    basket = offer(100)  # USD 100, under the personal-use limit
+    goods = 100 * 1365
+    resale, notes = landed_cost(basket, FX, Policy(fx_buffer=0))  # default basis is commercial_resale
+    assert resale == pytest.approx(goods * 1.08 * 1.10, abs=1)
+    assert "resale" in notes[0] and "unverified" in notes[0]
+    personal, pnotes = landed_cost(basket, FX, Policy(fx_buffer=0, import_basis="personal_use"))
+    assert personal == goods
+    assert "not valid for resale" in pnotes[0]
+    sample, snotes = landed_cost(basket, FX, Policy(fx_buffer=0, import_basis="genuine_sample"))
+    assert sample == resale  # no sample exemption without evidence
+    assert "sample" in snotes[0]
+
+
+def test_unknown_import_basis_is_refused():
+    with pytest.raises(ConfigError, match="import_basis"):
+        landed_cost(offer(10), FX, Policy(import_basis="duty_free_please"))
 
 
 def test_domestic_krw_offer_has_no_buffer_or_customs():

@@ -8,7 +8,7 @@ Phase 1 of a dropship setup (buy from the supplier only after a customer orders)
 ```
 supplier offers ──► find the same product on the Korean market ──► landed cost vs. market price ──► ranked CSV
 (AliExpress API,     (Naver Shopping API: prices across            (fees, ads, returns, FX,
- CSV for anything     Korean malls)                                  $150 duty-free check)
+ CSV for anything     Korean malls)                                  duty & VAT on resale imports)
  else)
 ```
 
@@ -72,7 +72,7 @@ Title-only matching is strict on purpose. Generic goods mostly match through ima
 
 ```
 price for margin = landed cost ÷ (1 − marketplace fee − ads − returns − margin)
-landed cost      = (item + shipping) × FX × (1 + FX buffer) [+ duty & VAT above $150]
+landed cost      = (item + shipping) × FX × (1 + FX buffer) + duty & VAT (estimated; see import_basis)
 ```
 
 The tool lists at the cheapest matched competitor's price, or below it with `undercut`, and calls the product viable when

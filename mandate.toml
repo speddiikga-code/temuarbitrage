@@ -1,0 +1,54 @@
+# Operating mandate. Only the owner edits this file. The operating core refuses every LIVE action while any
+# field below is "pending", and a zero limit authorizes nothing. Money is integer KRW. Rates are 0..1.
+# Agents cannot raise a limit, add a funding source or change a payout destination: no code writes this file.
+
+[mandate]
+schema_version = 1
+environment = "live"          # this is the owner's real mandate; simulated runs use mandate.simulated.toml
+
+[business]
+operating_country = "pending"     # e.g. "KR"
+business_identity = "pending"     # the registered business (사업자) that sells and pays
+target_markets = "pending"        # e.g. ["KR"]
+
+[connections]
+storefronts = "pending"           # e.g. ["smartstore:<store id>"]
+marketplaces = "pending"          # e.g. ["naver", "coupang"]
+suppliers = "pending"             # e.g. ["aliexpress"]  (Temu has no API and forbids scraping: CSV + manual ordering)
+payment_processors = "pending"    # e.g. ["naverpay"]  (marketplaces settle to the seller; a storefront needs a PG)
+
+[funding]
+funding_sources = "pending"       # e.g. ["bank:<bank>-<last4>"], never account numbers
+payout_destinations = "pending"   # where settlements land; changing this needs a mandate update
+initial_capital_krw = "pending"
+authorized_operating_expenses_krw = "pending"   # per month; also held back as the operating reserve
+
+[limits]
+max_transaction_krw = "pending"       # one supplier payment, ad charge or refund
+max_daily_spend_krw = "pending"
+max_total_exposure_krw = "pending"    # inventory + prepaid purchases + reserved budget at any time
+max_cumulative_loss_krw = "pending"   # purchasing pauses automatically when realized losses pass this
+max_inventory_value_krw = "pending"   # portfolio limit
+max_sku_exposure_krw = "pending"      # concentration limit for one product
+
+[reserves]
+min_cash_reserve_krw = "pending"      # settled cash that is never spent
+refund_reserve_rate = "pending"       # share of each sale held until its return window closes, e.g. 0.05
+refund_reserve_days = "pending"       # return window in days, e.g. 14
+dispute_reserve_rate = "pending"      # share of each sale held for chargebacks, e.g. 0.01
+
+[reinvestment]
+reinvestment_rate = "pending"         # share of eligible realized profit that may be reinvested, e.g. 0.5
+
+[budgets]
+ai_credit_budget = "pending"          # credits per month for agent runs
+infrastructure_budget_krw = "pending" # per month
+
+[permissions]
+product_categories = "pending"        # e.g. ["kitchen", "car-accessories"]; anything else is refused
+# Any of: purchase_inventory, purchase_samples, pay_supplier, buy_shipping, pay_software, pay_infrastructure,
+#         run_ads, collect_payment, issue_refund, reinvest, list_products
+external_actions = "pending"
+
+[goals]
+target_realized_profit_krw = 1000000  # tracked against reconciled live net profit only, never simulated sales
