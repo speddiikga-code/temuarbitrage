@@ -46,7 +46,8 @@ arbitrage price --cost 5.2 --currency USD --shipping 1.5 --market-price 19900
 `scan` prints the best opportunities and writes every match to `opportunities.csv`
 (opens correctly in Excel). Add `--json scan.json` for machine-readable output (schema in
 [AGENTS.md](AGENTS.md)). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
-`--all` (include thin margins), `--no-images`, `--config my.toml`.
+`--all` (include thin margins), `--no-images`, `--compliance drop` (leave out everything the
+compliance rules flag), `--config my.toml`.
 
 ### CSV suppliers
 
@@ -85,6 +86,17 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 | Ads / returns | 10% / 3% | of sale price |
 | Target margin | 15% | |
 | FX | live (open.er-api.com), fallback in config | +3% buffer on foreign currency |
+
+**Allowed to sell it?** (`compliance.py`) A keyword filter names the certification or import rule a product
+probably needs, so you check before listing. Categories: KC 안전인증 / 안전확인 / 공급자적합성 (electrical goods),
+전파법 (Bluetooth, Wi-Fi, remotes, drones), 어린이제품 (kids' goods, toys), food and supplements, cosmetics,
+medical devices (KF94 masks, thermometers), lithium batteries, restricted imports (vapes, lasers, weapons) and a brand
+blocklist. Each rule is `flag` (kept, shown in the `check` column, the CSV `compliance` column and the JSON) or
+`drop` (left out of the scan and listed on stderr). Food, medical and restricted drop by default; the rest flag.
+Both the supplier title and the matched Korean listings are checked, since an English Temu title often hides the
+category. Override per scan with `--compliance flag|drop|off`, or edit the keyword lists under `[compliance]`
+in a `--config` file (Korean keywords match as substrings, Latin ones as whole words; `~mah` forces a substring).
+This is a filter, not legal advice.
 
 ## Known limits
 

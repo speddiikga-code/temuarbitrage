@@ -63,7 +63,8 @@ def test_scan_json_matches_documented_contract(monkeypatch, tmp_path, fixtures_d
     assert data["query"] == "tongs" and data["source_count"] == 2
     assert set(data["fee_rates"]) == {"naver", "coupang"}
     opp = data["opportunities"][0]
-    assert set(opp) == {"id", "source", "landed_cost", "market_low", "best_marketplace", "quotes", "matches", "notes"}
+    assert set(opp) == {"id", "source", "landed_cost", "market_low", "best_marketplace", "quotes", "matches", "notes", "compliance"}
+    assert data["dropped"] == []
     assert opp["id"].startswith(opp["source"]["platform"] + ":")
     assert set(opp["quotes"]["naver"]) == {"marketplace", "list_price", "break_even", "min_viable", "profit", "margin", "viable"}
     assert {"offer", "score", "reasons"} == set(opp["matches"][0])

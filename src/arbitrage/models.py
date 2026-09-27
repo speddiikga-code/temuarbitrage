@@ -54,6 +54,8 @@ class Opportunity:
     market_low: int
     quotes: dict[str, Quote]
     notes: list[str] = field(default_factory=list)
+    # compliance.Flag objects: certifications or import limits the product probably needs.
+    flags: list = field(default_factory=list)
 
     @property
     def id(self) -> str:
