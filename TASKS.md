@@ -13,3 +13,4 @@ Rules are in [AGENTS.md](AGENTS.md).
 | 6 | Listing: Coupang WING + Naver Commerce API (needs a fixed Seoul IP) | unassigned | | later |
 | 7 | Order sync: orders + 개인통관고유부호, purchase tasks, tracking back | unassigned | | later |
 | 8 | Live smoke test with real Naver/AliExpress keys | owner | | waiting on keys |
+| 12 | **First transaction:** sample order sheet (AliExpress item, observed prices, three customs modes, ledger entry as a mode-C procurement expense), skeptic-checked candidates, path from sample to first Naver sale | Claude | `claude/first-transaction-i98z8y` | in progress |
