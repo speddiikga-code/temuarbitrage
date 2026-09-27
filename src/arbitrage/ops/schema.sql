@@ -154,22 +154,32 @@ CREATE TABLE IF NOT EXISTS pauses (
 );
 
 CREATE TABLE IF NOT EXISTS integrations (
-  name TEXT PRIMARY KEY,
-  role TEXT NOT NULL,              -- supplier | sales_channel | affiliate_channel | logistics | research | payment
-  mode TEXT NOT NULL,
-  credentials_ref TEXT,            -- name of the environment variable, never the secret
-  permissions TEXT NOT NULL DEFAULT '[]',
-  rate_limits TEXT NOT NULL DEFAULT '{}',
+  id TEXT PRIMARY KEY,               -- entry id from integrations/registry.toml, e.g. aliexpress_supplier
+  name TEXT NOT NULL,
+  mode TEXT NOT NULL,                -- live for every real platform; simulated entries back the simulated adapters
+  roles TEXT NOT NULL DEFAULT '[]',
+  verdict TEXT NOT NULL,             -- go | conditional | no_go | unknown
+  status TEXT NOT NULL,              -- not_connected | credentials_pending | sandbox | live
+  connected INTEGER NOT NULL DEFAULT 0,
+  region_ok_for_korea INTEGER NOT NULL DEFAULT 0,
+  eligibility TEXT,
+  commercial_terms TEXT,
+  integration TEXT,                  -- api | api_for_sellers | dashboard_only | none | ...
+  credentials TEXT NOT NULL DEFAULT '[]',   -- environment variable names only, never values
+  permissions TEXT,
+  rate_limits TEXT,
   supported_operations TEXT NOT NULL DEFAULT '[]',
-  health TEXT NOT NULL DEFAULT 'unknown',   -- unknown | healthy | degraded | unhealthy
-  health_checked_at TEXT,
-  last_reconciled_at TEXT,
-  production_ready INTEGER NOT NULL DEFAULT 0,
+  manual_dependency TEXT,
+  health TEXT NOT NULL DEFAULT 'unverified',
+  last_verified TEXT,
+  unknown_because TEXT,
+  sources TEXT NOT NULL DEFAULT '[]',
+  -- runtime facts recorded by the core, never by a file load
   verified_operation TEXT,
   verified_at TEXT,
   verification_reference TEXT,
-  manual_dependency TEXT,
-  notes TEXT,
+  health_checked_at TEXT,
+  last_reconciled_at TEXT,
   updated_at TEXT NOT NULL
 );
 

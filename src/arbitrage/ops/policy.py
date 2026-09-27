@@ -33,6 +33,8 @@ NEW_COMMITMENT_KINDS = frozenset({
 # Actions that serve obligations we already have: allowed during a purchasing pause, blocked only by `all`.
 OBLIGATION_KINDS = frozenset({"customer_payment", "fulfillment", "shipping_purchase", "refund", "customer_support"})
 KNOWN_KINDS = NEW_COMMITMENT_KINDS | OBLIGATION_KINDS
+# Money leaving us: the per-transaction limit applies. Customer payments and fulfillment steps are not our spend.
+OUTGOING_KINDS = NEW_COMMITMENT_KINDS | frozenset({"refund", "shipping_purchase"})
 
 SCOPES = ("purchasing", "all")
 
@@ -150,7 +152,7 @@ class PolicyController:
         if request.amount_krw < 0:
             d.reasons.append("amount must not be negative")
         limit = m.krw("limits.max_transaction_krw")
-        if request.amount_krw > 0 and request.amount_krw > limit:
+        if request.kind in OUTGOING_KINDS and request.amount_krw > limit:
             d.reasons.append(f"amount {request.amount_krw:,} KRW exceeds the transaction limit {limit:,} KRW")
         d.checks.append("under transaction limit")
 
