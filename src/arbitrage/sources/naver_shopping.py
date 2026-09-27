@@ -78,7 +78,10 @@ class NaverShopping:
                 raise SourceError(f"Naver Shopping unreachable: {e}") from e
             if resp.status_code != 200:
                 raise SourceError(f"Naver Shopping API {resp.status_code}: {resp.text[:200]}")
-            items = resp.json().get("items", [])
+            try:
+                items = resp.json().get("items", [])
+            except ValueError:
+                raise SourceError(f"Naver Shopping returned non-JSON: {resp.text[:200]}") from None
             offers.extend(parse_items(items))
             if len(items) < display:
                 break
