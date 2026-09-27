@@ -44,12 +44,13 @@ arbitrage price --cost 5.2 --currency USD --shipping 1.5 --market-price 19900
 ```
 
 `scan` prints the best opportunities and writes every match to `opportunities.csv`
-(opens correctly in Excel). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
+(opens correctly in Excel). Add `--json scan.json` for machine-readable output (schema in
+[AGENTS.md](AGENTS.md)). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
 `--all` (include thin margins), `--no-images`, `--config my.toml`.
 
 ### CSV suppliers
 
-Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,cross_border`.
+Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,product_id,cross_border`. Give `product_id` so an item keeps the same id across scans even if its URL changes.
 `cross_border` defaults to true unless the currency is KRW.
 
 ```csv
@@ -100,6 +101,9 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 4. Order sync: pull orders + 개인통관고유부호, create purchase tasks, push tracking numbers back.
 
 ## Development
+
+Two agents work on this repo in parallel: read [AGENTS.md](AGENTS.md) (rules, code owners, contracts)
+and [TASKS.md](TASKS.md) (who is doing what) first.
 
 ```bash
 pip install -e ".[dev]"
