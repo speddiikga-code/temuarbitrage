@@ -91,3 +91,32 @@ def test_csv_missing_columns(tmp_path):
     path.write_text("title,price\nx,1\n", encoding="utf-8")
     with pytest.raises(ConfigError, match="url"):
         CsvSource(path).search("", 10)
+
+
+class HtmlResponse(FakeResponse):
+    """A 200 with an HTML body, as gateways return during outages."""
+
+    def __init__(self):
+        super().__init__(status_code=200)
+        self.text = "<html>Service Unavailable</html>"
+
+    def json(self):
+        raise ValueError("Expecting value")
+
+
+def test_non_json_responses_raise_source_error():
+    with pytest.raises(SourceError, match="non-JSON"):
+        NaverShopping("id", "secret", session=FakeSession(HtmlResponse())).search("x")
+    with pytest.raises(SourceError, match="non-JSON"):
+        AliExpress("key", "secret", session=FakeSession(HtmlResponse())).search("x")
+
+
+def test_csv_reads_product_id_and_reports_short_rows(tmp_path):
+    path = tmp_path / "s.csv"
+    path.write_text("title,price,url,product_id\n집게,3000,https://x/1,sku-1\n", encoding="utf-8")
+    (o,) = CsvSource(path).search("", 10)
+    assert o.product_id == "sku-1"
+
+    path.write_text("title,url,price\n집게,https://x/1\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match=":2"):
+        CsvSource(path).search("", 10)

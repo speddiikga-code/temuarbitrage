@@ -1,11 +1,16 @@
-"""CSV export and a terminal summary of scan results."""
+"""CSV and JSON export, and a terminal summary of scan results."""
 
 from __future__ import annotations
 
 import csv
+import json
+from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 
+from .fx import FxRates
 from .models import Opportunity
+from .pricing import Policy
 
 BASE_COLUMNS = [
     "source_platform", "source_title", "source_url", "source_price", "source_currency",
@@ -50,6 +55,54 @@ def write_csv(opportunities: list[Opportunity], path: str | Path, marketplaces: 
                     f"{m}_viable": q.viable,
                 })
             writer.writerow(row)
+
+
+# Bump when a field is renamed or removed; adding fields keeps the version.
+SCHEMA_VERSION = 1
+
+
+def to_json(
+    opportunities: list[Opportunity],
+    *,
+    query: str,
+    source_count: int,
+    warnings: list[str],
+    fx: FxRates,
+    policy: Policy,
+    fee_rates: dict[str, float],
+) -> dict:
+    """Scan results as plain data: the contract other tools (e.g. the review workbench) read."""
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "query": query,
+        "source_count": source_count,
+        "warnings": warnings,
+        "fx": {"origin": fx.origin, "USD": fx.rate("USD")},
+        "policy": asdict(policy),
+        "fee_rates": fee_rates,
+        "opportunities": [
+            {
+                "id": o.id,
+                "source": asdict(o.source),
+                "landed_cost": o.landed_cost,
+                "market_low": o.market_low,
+                "best_marketplace": o.best.marketplace,
+                "quotes": {name: asdict(q) for name, q in o.quotes.items()},
+                "matches": [
+                    {"offer": asdict(offer), "score": round(result.score, 3), "reasons": list(result.reasons)}
+                    for offer, result in sorted(o.matches, key=lambda m: m[1].score, reverse=True)
+                ],
+                "notes": o.notes,
+            }
+            for o in opportunities
+        ],
+    }
+
+
+def write_json(data: dict, path: str | Path) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def _truncate(text: str, width: int) -> str:
