@@ -36,6 +36,7 @@ returns and customs, and later lists the product and handles orders. Phase 1 is 
 | `src/arbitrage/matching.py`, `images.py` | Same-product decision (model code, image hash, title, brand) | Claude |
 | `src/arbitrage/pricing.py`, `default.toml` | Landed cost, fee math, price for margin | Claude |
 | `src/arbitrage/scanner.py`, `report.py`, `cli.py` | Pipeline, CSV/JSON output, CLI | Claude |
+| `src/arbitrage/ops/` | Operating core: mandate (fails closed), double-entry ledger, budget governor, action gateway and state machines, registry loader, charters + orchestrator, durable workflows, pauses, audit, `arbitrage-ops` CLI (docs in `docs/ops/`) | Claude |
 | `workbench/` (new) | Review UI: approve/reject matches, adjust costs, re-price | GPT (proposed) |
 
 ## Contracts

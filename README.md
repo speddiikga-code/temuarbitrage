@@ -100,6 +100,21 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 3. List on Coupang (WING Open API) and Naver (Commerce API). Both require calls from a registered fixed IP, so this runs on a Seoul server.
 4. Order sync: pull orders + 개인통관고유부호, create purchase tasks, push tracking numbers back.
 
+## Operating core (no live spending yet)
+
+`src/arbitrage/ops` is the part that will hold money and stock once accounts exist: a mandate file that fails closed
+while any field is `"pending"`, a double-entry ledger, a budget governor with atomic reservations, an action gateway
+whose state machines need the counterparty's confirmation before anything is booked, pauses, an audit chain and a
+scheduler. Today it has only simulated adapters. Try it without spending anything:
+
+```bash
+arbitrage-ops --mode simulated migrate
+arbitrage-ops --mode simulated demo     # buys, sells, ships, settles: all labelled SIMULATED
+arbitrage-ops status                    # live books: empty until the mandate and accounts exist
+```
+
+Design, schema, state machines, procedures, the dashboard API and the readiness report are in [docs/ops/](docs/ops/).
+
 ## Development
 
 Two agents work on this repo in parallel: read [AGENTS.md](AGENTS.md) (rules, code owners, contracts)
