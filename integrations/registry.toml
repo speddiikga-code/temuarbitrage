@@ -1,0 +1,654 @@
+# Integration registry: every platform or service this business touches, what it is allowed to do,
+# and whether it is connected. Nothing here is connected. An entry moves to status = "live" only in a
+# PR that records the real operation that was verified (an API call, a listing, an order) and when.
+#
+# evidence on a source: verified = read on the platform's or a Korean government page;
+# reported = press or third-party page; inferred = our reasoning; unknown = could not reach or find.
+# Credentials are names of environment variables only. Values never go in git.
+
+schema_version = 1
+generated_on = "2026-09-27"
+owner_thread = "Platform eligibility and Korea requirements"
+
+# ---------------------------------------------------------------------------------------------
+# Suppliers
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "temu_consumer"
+name = "Temu (consumer site and app, temu.com/kr) as a sourcing supplier"
+roles = ["supplier"]
+verdict = "no_go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Consumer accounts. Korean Terms of Use (발효일 2026-08-31) §3.1 limit use to your own purposes and not for the benefit of a third party; §7.4 grants personal, non-commercial access; §7.5 says commercial use or use for the benefit of another business needs Temu's prior express permission; §3.4 restricts the listed automation and scraping. These are service-use restrictions, not a statutory ban on reselling every physical item, and the introduction contemplates company representatives using the service."
+commercial_terms = "Automated consumer-checkout sourcing for resale is NOT APPROVED today: no commercial terms or express permission under §7.5 exist for this business, and Temu may cancel orders or close the account. An authorized public buyer-purchasing API was not verified (no public documentation found; open.temu.com unreachable from here), so this entry does not assert that none exists. If Temu grants written permission or commercial terms, re-evaluate. No commercial invoice or 세금계산서 is issued to consumer accounts."
+integration = "none"
+credentials = []
+permissions = "None verified for a buyer. Seller-side APIs are a separate role (see temu_local_seller)."
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Would be entirely manual: product data by hand or CSV, checkout in the app per order with the recipient's 개인통관고유부호, tracking copied by hand, returns opened by the reseller within 90 days (first return per order free, then ₩2,500). Not a supported path without Temu's permission."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.temu.com/kr/terms-of-use.html", evidence = "verified", checked = "2026-09-27", note = "Korean Terms of Use, 발효일 2026-08-31, §3.1 §3.4 §7.4 §7.5 §8.5" },
+  { url = "https://www.temu.com/terms-of-use.html", evidence = "verified", checked = "2026-09-27", note = "Global Terms of Use, last updated 2025-11-07" },
+  { url = "https://www.temu.com/kr/shipping-info.html", evidence = "verified", checked = "2026-09-27", note = "Standard 6-14 days, express 2-7 days ₩2,000, most orders free standard shipping" },
+  { url = "https://www.temu.com/kr/return-and-refund-policy.html", evidence = "verified", checked = "2026-09-27", note = "Updated 2026-09-17: 90-day returns, first return free, ₩2,500 after" },
+  { url = "https://www.temu.com/kr/support/c3/support-f-56-s-140.html", evidence = "verified", checked = "2026-09-27", note = "Payment methods in Korea: cards, Kakao Pay, Toss Pay, Naver Pay, PayPal" },
+  { url = "https://www.temu.com/kr/privacy-and-cookie-policy.html", evidence = "verified", checked = "2026-09-27", note = "Privacy policy 2025-08-25: 개인통관고유부호 collected for Korean clearance" },
+  { url = "https://open.temu.com/", evidence = "unknown", checked = "2026-09-27", note = "Unreachable from this environment (proxy 502); buyer-purchasing API not verified" },
+]
+
+[[integrations]]
+id = "temu_local_seller"
+name = "Temu Korea local seller program (kr.seller.temu.com)"
+roles = ["sales_channel"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Distinct role from sourcing: selling INTO Temu. Korea Seller Center landing page states registration is free and applications are normally reviewed within one business day, and asks for business type, name, registered address and the representative's legal name and citizenship. Press and seller-tool guides report 사업자등록증 and 통신판매업신고번호, Korean stock and self-fulfilment (local-to-local). Commission, settlement and category rules are behind login."
+commercial_terms = "No registration fee reported. Commission rate is not published anywhere we could read."
+integration = "api_for_sellers"
+credentials = ["TEMU_SELLER_APP_KEY", "TEMU_SELLER_APP_SECRET", "TEMU_SELLER_ACCESS_TOKEN"]
+permissions = "Temu Partner Platform apps are authorized by the seller (Partner Platform terms 2025-02-26: Permitted Use is support of an Authorized User's own Temu store); scopes reported as orders, fulfilment/tracking and goods/inventory. The documentation page for seller authorization renders no content without login, so exact scopes, hosts for Korea and token rules are unknown."
+rate_limits = "unknown (a 20 requests/second figure appears only in third-party posts)"
+supported_operations = ["list products (unverified)", "read orders (unverified)", "upload tracking (unverified)"]
+manual_dependency = "Account application and approval; Korean stock and domestic shipping; everything until an account exists."
+health = "unverified"
+last_verified = "2026-09-27"
+unknown_because = "Seller-side documentation is behind login; commission and API scopes could not be read."
+sources = [
+  { url = "https://www.koreaherald.com/article/10423905", evidence = "reported", checked = "2026-09-27", note = "2025-02-19: local seller program for sellers with Korean inventory" },
+  { url = "https://www.asiatoday.co.kr/kn/view.php?key=20260624010008556", evidence = "reported", checked = "2026-09-27", note = "2026-06-24: no registration fee, about 3,500 Korean sellers" },
+  { url = "https://www.sweepingoms.com/blog/temu-seller-entry-guide-korea", evidence = "reported", checked = "2026-09-27", note = "사업자등록증 and 통신판매업신고번호 required; open application since H1 2025" },
+  { url = "https://kr.seller.temu.com/login.html?login_scene=302", evidence = "verified", checked = "2026-09-27", note = "Korea Seller Center: no registration fee, review within one business day, business details required" },
+  { url = "https://partner.temu.com/protocol/temu_partner_platform_terms_20250523.pdf", evidence = "verified", checked = "2026-09-27", note = "Partner Platform terms 2025-02-26: seller-authorized apps" },
+  { url = "https://partner.temu.com/documentation?menu_code=38e79b35d2cb463d85619c1c786dd303", evidence = "unknown", checked = "2026-09-27", note = "Seller authorization guide renders only a loading shell without login" },
+]
+
+[[integrations]]
+id = "temu_affiliate"
+name = "Temu Affiliate Program (Korea)"
+roles = ["affiliate_channel"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Anyone who shares links with an audience; payout method and minimum depend on country."
+commercial_terms = "Up to 30% commission on referred orders, ₩15,000 per referred app download, 30-day cookie, monthly cash cap ₩14,000,000 (Korean recruit page). Referral traffic only; it does not license resale."
+integration = "dashboard_only"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = ["generate referral links (dashboard)"]
+manual_dependency = "Link creation and payout setup in the affiliate dashboard; no API."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.temu.com/kr/affiliate_recruit.html", evidence = "verified", checked = "2026-09-27", note = "Korean affiliate terms: up to 30%, ₩15,000 per download, ₩14,000,000 monthly cap" },
+  { url = "https://www.temu.com/affiliate_question.html", evidence = "verified", checked = "2026-09-27", note = "FAQ: eligibility, prohibited practices" },
+]
+
+[[integrations]]
+id = "aliexpress_supplier"
+name = "AliExpress (buyer account + Dropshipping Center + Open Platform DS API)"
+roles = ["supplier"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Any buyer account; dropshipping is officially supported: activate the DS Center and accept the AliExpress Business Program agreement (2024-02-01), then a 'Dropshipping Developer (Individual/Corporation)' app on the Open Platform, OAuth-authorized against that buyer account. Korean individuals qualify; the Commercial (ISV) and Seller-inhouse categories are closed to non-Chinese companies."
+commercial_terms = "Terms of Use (updated 2026-08-26, effective 2026-09-26) do not restrict reselling purchased goods or shipping to a third-party address; they forbid copying or systematically retrieving site content by robots or by hand (3.2(a)), so all product data must come through the API. The Beginner's Guide for Dropshipping (2025-01-13) says AliExpress supports dropshipping to 'any other eCommerce platform'. The reseller is the AliExpress buyer of record and holds the dispute rights (Buyer Protection: 15 days after receipt; Korean 90-day refund policy tightened 2025-06 to 1-5 free returns a month). Each order must carry the Korean recipient's 개인통관고유부호; there is no documented Korea-specific field in ds.order.create, so a test order is required. Data pulled through the API may be used only inside the approved app (API Use Agreement 7.5.4)."
+integration = "api"
+credentials = ["ALIEXPRESS_DS_APP_KEY", "ALIEXPRESS_DS_APP_SECRET", "ALIEXPRESS_DS_ACCESS_TOKEN", "ALIEXPRESS_DS_REFRESH_TOKEN"]
+permissions = "AE-Dropshipper API group (16 methods) with a buyer access token: ds.product.get (buyer price, ship_to_country=KR, target_language ko_KR), ds.freight.query and logistics.buyer.freight.calculate (shipping cost and days per line), ds.order.create (address, items, logistics_service_name; payment by API only after DS auth plus a PayPal binding), ds.order.tracking.get, trade.ds.order.get, ds.text.search, ds.image.searchV2, category and feed methods (feeds and category_sequence need a whitelist). One Open Platform account may hold either the DS API or the Affiliate API, not both (doc 1935, 2025-06-13)."
+rate_limits = "No daily quota documented. Product doc notes an overall 500 QPS for the connection with a 1-2% error rate; third parties report a 5,000 'flow rate' shown in the console. Access token 30 days, refresh token 30 days, refresh chain at most 60 days, then a human re-authorizes."
+supported_operations = ["product detail and buyer price", "shipping cost and delivery days per product and line", "text and image search", "create order for a third-party address", "order status and tracking"]
+manual_dependency = "DS Center activation and agreement; developer profile review and app approval with a written reason (1-2 business days reported); OAuth re-authorization at most every 60 days; PayPal binding for API payment, otherwise each order is paid by hand in the app (cards, Naver Pay, Kakao Pay, Toss Pay); customer's 개인통관고유부호, name and phone copied into each order; disputes and returns in the app."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://terms.alicdn.com/legal-agreement/terms/suit_bu1_aliexpress/suit_bu1_aliexpress202204182115_66077.html", evidence = "verified", checked = "2026-09-27", note = "Terms of Use Part A updated 2026-08-26: 3.2(a) no systematic retrieval; no resale restriction" },
+  { url = "https://terms.alicdn.com/legal-agreement/terms/c_end_product_protocol/20240204100040824/20240204100040824.html", evidence = "verified", checked = "2026-09-27", note = "Business Program (DS) agreement 2024-02-01" },
+  { url = "https://openservice.aliexpress.com/doc/doc.htm#/?docId=1646", evidence = "verified", checked = "2026-09-27", note = "Beginner's Guide for Dropshipping, modified 2025-01-13" },
+  { url = "https://openservice.aliexpress.com/doc/doc.htm#/?docId=1790", evidence = "verified", checked = "2026-09-27", note = "ds.product.get, modified 2025-04-28, QPS note" },
+  { url = "https://openservice.aliexpress.com/doc/doc.htm#/?docId=1590", evidence = "verified", checked = "2026-09-27", note = "OAuth flow and token validity, 2024-04-17" },
+  { url = "https://openservice.aliexpress.com/doc/doc.htm#/?docId=1361", evidence = "verified", checked = "2026-09-27", note = "App categories and approval" },
+  { url = "https://terms.alicdn.com/legal-agreement/terms/suit_bu1_aliexpress/suit_bu1_aliexpress202201220006_10755.html", evidence = "verified", checked = "2026-09-27", note = "API Use Agreement 2022-01-25" },
+  { url = "https://www.aliexpress.com/p/buyerprotection/index.html", evidence = "verified", checked = "2026-09-27", note = "Buyer Protection windows" },
+  { url = "https://www.newsway.co.kr/news/view?ud=2025062311424679705", evidence = "reported", checked = "2026-09-27", note = "2025-06-23: Korean return policy tightened" },
+  { url = "https://helpcenter.aliexpress.com/s/BuyerHelp?language=ko_KR", evidence = "unknown", checked = "2026-09-27", note = "Help center renders no text; PCC collection at checkout seen only on third-party pages" },
+]
+
+[[integrations]]
+id = "aliexpress_affiliate"
+name = "AliExpress Affiliate (Portals) program + Affiliate API (current scanner source)"
+roles = ["affiliate_channel", "research_source"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Publisher account at portals.aliexpress.com (website or social channel URL; 1-3 days approval reported), then an 'Affiliates Developer (Individual/Corporation)' app on the Open Platform. Must live in a different Open Platform account from the DS app."
+commercial_terms = "Affiliate Program Service Agreement (effective 2022-03-31): monthly commission payment, withdrawal above USD 15, rates published inside Portals (login). Reported: 3-day cookie, 0-9% by category, non-enrolled products 1% since 2025-03. The API returns list prices shipped to Korea in KRW but not shipping cost (use product.shipping.get or the DS freight methods); src/arbitrage/sources/aliexpress.py already calls aliexpress.affiliate.product.query."
+integration = "api"
+credentials = ["ALIEXPRESS_APP_KEY", "ALIEXPRESS_APP_SECRET", "ALIEXPRESS_TRACKING_ID"]
+permissions = "AE-Affiliate group (15 methods, app key + signature, no user token): product.query, hotproduct.query, productdetail.get, product.shipping.get, link.generate, order.list, promotion.info.get, smartmatch."
+rate_limits = "Not documented per app; same 500 QPS platform note; console flow-rate figure reported as 5,000."
+supported_operations = ["keyword and hot-product search shipped to KR in KRW", "product detail", "shipping options per product (product.shipping.get)", "affiliate link generation", "commission order list"]
+manual_dependency = "Portals enrollment and Open Platform app approval; commission tables read by hand in Portals."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://terms.alicdn.com/legal-agreement/terms/suit_bu1_aliexpress/suit_bu1_aliexpress202003132026_84536.html", evidence = "verified", checked = "2026-09-27", note = "Affiliate Program Service Agreement 2022-03-31" },
+  { url = "https://openservice.aliexpress.com/doc/doc.htm#/?docId=1391", evidence = "verified", checked = "2026-09-27", note = "Quick start: Portals account before Affiliates app key" },
+  { url = "https://openservice.aliexpress.com/doc/doc.htm#/?docId=1935", evidence = "verified", checked = "2026-09-27", note = "2025-06-13: Affiliate and DS APIs cannot share one account" },
+  { url = "https://portals.aliexpress.com/", evidence = "unknown", checked = "2026-09-27", note = "Behind login; commission rates not readable" },
+]
+
+[[integrations]]
+id = "aliexpress_kvenue"
+name = "AliExpress Korea K-Venue (selling Korean-stocked goods on AliExpress)"
+roles = ["sales_channel"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Korean 사업자등록증; about 5 business days review; 개인사업자 reported as limited mainly to fashion with KYC (reported, not read on an official page)."
+commercial_terms = "Commissions since 2025-02-01 (about 3.3-8.8% by category, reported); 0% for the first 90 days (reported). Seller-side APIs exist (AE-KoreanCrossborder-Product group) but are used through Korean ERP vendors."
+integration = "api_for_sellers"
+credentials = []
+permissions = "Seller-side only; not relevant to sourcing."
+rate_limits = "unknown"
+supported_operations = []
+manual_dependency = "Seller application; only for goods stocked in Korea. Not part of the first sale."
+health = "unverified"
+last_verified = "2026-09-27"
+unknown_because = "Fee schedule and eligibility for 개인사업자 read only from press and blogs."
+sources = [
+  { url = "https://www.klnews.co.kr/news/articleView.html?idxno=315149", evidence = "reported", checked = "2026-09-27", note = "2025-01-02: commissions from 2025-02-01, new-seller waiver" },
+  { url = "https://www.sweepingoms.com/blog/aliexpress-commission-calculator", evidence = "reported", checked = "2026-09-27", note = "2025-02-17: rates by category" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Sales channels
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "coupang_marketplace"
+name = "Coupang Marketplace (WING seller center + Open API)"
+roles = ["sales_channel"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Korean 사업자 only (개인사업자 or 법인): 사업자등록증, 통장사본, 통신판매업신고증 (can be uploaded later; since 2026-06 not required from 간이과세자, whose prior-year supply is under ₩104,000,000). No individual (비사업자) path. Opening fee ₩0."
+commercial_terms = "Category commission 4-10.9% of the paid price (official table: 가전디지털 7.8%, 뷰티 9.6%, 패션 10.5%, 가구/도서 10.8%, 쥬얼리 4%) plus 10% VAT on the commission; ₩55,000 (VAT incl.) service fee in any month with sales of ₩1,000,000 or more (₩5,000,000 for 가전/디지털, reported). Settlement on 구매확정 (auto 7 days after delivery): 주정산 pays 70% about 15 business days after the week ends and 30% later; 월정산 pays 100% about 15 business days after month end; 빠른정산 (90% next day) offered to some 개인사업자 only. Overseas purchase listings: product deliveryMethod AGENT_BUY with pccNeeded = true; Coupang collects the buyer's 개인통관고유부호 and returns it in the order sheet. KC-required goods without certification cannot be listed; children's products, food, cosmetics and medical devices have their own gates."
+integration = "api"
+credentials = ["COUPANG_VENDOR_ID", "COUPANG_ACCESS_KEY", "COUPANG_SECRET_KEY"]
+permissions = "Open API key issued in WING to a business-verified selling account; no approval process. One key per vendor. Self-development mode allows up to 10 registered IPs, settings changed at most 10 times a week; keys expire after 180 days. No sandbox; tests run against the live account. A Korean IP is not documented as required; a fixed IP is."
+rate_limits = "Per-vendor per-second limit, unpublished and changeable without notice (HTTP 429 on breach); 20 or more error responses within 5 seconds triggers a temporary block."
+supported_operations = ["create/update products (AGENT_BUY delivery method, certifications per item)", "list orders by minute/day and read one order sheet incl. personalCustomsClearanceCode", "confirm order, upload waybill with courier code (EMS, DHL, FEDEX, UPS, CAINIAO, CJGLS ...)", "returns and exchanges", "promotions and coupons", "customer inquiries", "settlement (sales and payout history)", "Rocket Growth inbound"]
+manual_dependency = "Business registration and 통신판매업 신고; WING signup and document upload; enabling 해외상품 배송 in 판매정보; API key and IP registration every 180 days; choosing 주정산/월정산; KC evidence and 인증정보 per listing; placing the supplier order with the buyer's customs code outside Coupang; seller-score monitoring in WING; return-fee disclosure text on each listing."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://marketplace.coupang.com/mba/register", evidence = "verified", checked = "2026-09-27", note = "Required documents by seller type; listing possible right after 사업자 인증" },
+  { url = "https://marketplace.coupang.com/faq", evidence = "verified", checked = "2026-09-27", note = "Documents, no fee besides commission, 주정산/월정산 choice" },
+  { url = "https://marketplace.coupang.com/information-center/kupang-panmaeja-gaib-ije-seoryu-junbi-eobsi-1bunimyeon-ggeut-feat-ganigwaseja-ibjeom-gansohwa", evidence = "verified", checked = "2026-09-27", note = "From 2026-06 간이과세자 sign up without 통신판매업신고증" },
+  { url = "https://cloud.mkt.coupang.com/Fee-Table", evidence = "verified", checked = "2026-09-27", note = "Official commission table dated 2019-11-25" },
+  { url = "https://marketplace.coupang.com/information-center/almyeon-alsurog-deo-joheun-kupang-susuryo-2", evidence = "verified", checked = "2026-09-27", note = "4-10.9% by category; ₩55,000 monthly service fee above ₩1,000,000 sales" },
+  { url = "https://marketplace.coupang.com/information-center/naeilbuteo-baro-sayonghaneun-kupang-bbareunjeongsan", evidence = "verified", checked = "2026-09-27", note = "2025-07-28: 빠른정산 90% next day, some 개인사업자 only" },
+  { url = "https://www.windly.cc/blog/coupang-settlement-guide-pre-2026", evidence = "reported", checked = "2026-09-27", note = "2025-11-24: 주정산 70% at D+15 business days, 30% later; 월정산 timing" },
+  { url = "https://developers.coupang.com/ko/faq/how-can-i-list-products-as-an-overseas-buying-agent", evidence = "verified", checked = "2026-09-27", note = "구매대행 listing: 해외상품 배송 = 유, deliveryMethod AGENT_BUY" },
+  { url = "https://developers.coupang.com/ko/api/products/modify-product", evidence = "verified", checked = "2026-09-27", note = "pccNeeded must be true for 구매대행; deliveryMethod enum" },
+  { url = "https://developers.coupang.com/ko/api/shipments/single-po-query-using-orderid", evidence = "verified", checked = "2026-09-27", note = "Order sheet returns overseaShippingInfoDto.personalCustomsClearanceCode" },
+  { url = "https://developers.coupang.com/hc/en-us/articles/20288952179993-Issue-Open-API-Key-NEW", evidence = "verified", checked = "2026-09-27", note = "Key issuance, 10 IPs, 180-day expiry, no test environment" },
+  { url = "https://developers.coupang.com/hc/en-us/articles/360033917473-Coupang-OPEN-API", evidence = "verified", checked = "2026-09-27", note = "'There is no process required for using OPEN API'; HMAC signing" },
+  { url = "https://developers.coupang.com/ko/notices/notice-on-strengthening-openapi-speed-limit-policy-october-12-2023", evidence = "verified", checked = "2026-09-27", note = "Rate limit policy 2023-10-12" },
+  { url = "https://developers.coupang.com/ko/faq/how-to-resolve-sorry-access-denied-http-403-error-when-calling-coupang-openapi", evidence = "verified", checked = "2026-09-27", note = "Error-burst block; high-risk IPs blacklisted" },
+  { url = "https://developers.coupang.com/ko/api/logistics/courier-code", evidence = "verified", checked = "2026-09-27", note = "Courier codes incl. international carriers" },
+  { url = "https://marketplace.coupang.com/information-center/blog-news7", evidence = "verified", checked = "2026-09-27", note = "Prohibited and restricted items (KC, food, cosmetics, medical devices, batteries)" },
+  { url = "https://globalsellers.coupang.com/en/kc-guidelines-kr/", evidence = "verified", checked = "2026-09-27", note = "KC guideline index for 구매대행" },
+  { url = "https://cashdata.oopy.io/7f547127-45c8-4965-8cbc-9e9d8bae96c3", evidence = "reported", checked = "2026-09-27", note = "Overseas return-fee caps (Coupang table as of 2022-04-11)" },
+]
+
+[[integrations]]
+id = "coupang_partners"
+name = "Coupang Partners (affiliate program and its Open API)"
+roles = ["affiliate_channel", "research_source"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Individuals and businesses may join; API keys are issued only after 최종승인, which requires a registered activity channel with genuine partner activity and the disclosure sentence."
+commercial_terms = "3% of transaction value through partner links; payout on the 15th of the second month after the month of the sale; monthly payout cap ₩30,000,000 (from 2024-08-01). The product search API is the only legitimate programmatic source of Coupang prices we found, but it is limited to 10 searches per hour and about 10 products per search, so it fits spot checks, not scans."
+integration = "api"
+credentials = ["COUPANG_PARTNERS_ACCESS_KEY", "COUPANG_PARTNERS_SECRET_KEY"]
+permissions = "HMAC-signed calls to deeplink, products/search, best categories and reports; key visible only after final approval."
+rate_limits = "Search 10 calls/hour; Report 50 calls/hour; other endpoints 100 calls/hour; one violation blocks the API for 24 hours, three block all partner features."
+supported_operations = ["search Coupang products by keyword (10 results)", "convert URLs to partner links", "best-category and goldbox lists", "click and revenue reports"]
+manual_dependency = "Join Coupang Partners, run a real content channel, pass final approval; until then no API. Coupang consumer pages cannot be scraped."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://partners.coupangcdn.com/partners-guide/partners-guide-20240711135620.pdf", evidence = "verified", checked = "2026-09-27", note = "Official guide v.1 (2021-07, updated 2024-08): 3%, API only after 최종승인, Search 10/hour, Report 50/hour, others 100/hour" },
+  { url = "https://partners.coupang.com/", evidence = "verified", checked = "2026-09-27", note = "Program site; API guide endpoint returned 403 without login" },
+]
+
+[[integrations]]
+id = "gmarket_auction"
+name = "Gmarket / Auction (ESM PLUS + ESM Trading API)"
+roles = ["sales_channel"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "One ESM PLUS signup covers both marketplaces; individual sellers reported as allowed, 사업자 sellers submit 사업자등록증 and 통신판매업신고증."
+commercial_terms = "Category commission on the price plus 3.3% on prepaid shipping; ₩55,000 monthly server fee when the prior month's sales reach ₩5,000,000 (official fee page, undated). Cross-listing to SSG.COM adds 1% (reported). Ownership moved to the Shinsegae-Alibaba joint venture in 2025 (reported)."
+integration = "api"
+credentials = ["ESM_API_KEY"]
+permissions = "ESM Trading API for products, orders, shipping, claims and settlement; key issuance details behind seller login."
+rate_limits = "unknown"
+supported_operations = ["products", "orders", "shipping", "claims", "settlement"]
+manual_dependency = "Seller signup and API application in ESM PLUS; not needed for the first sale."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.esmplus.com/commonpopup/gmarketusecost", evidence = "verified", checked = "2026-09-27", note = "Fee page: category rate, 3.3% on shipping, ₩55,000 server fee" },
+  { url = "https://etapi.gmarket.com/", evidence = "verified", checked = "2026-09-27", note = "ESM Trading API portal, notices dated 2026" },
+  { url = "https://www.windly.cc/blog/gmarket-esm-plus-signup", evidence = "reported", checked = "2026-09-27", note = "2024-12-19 signup guide" },
+]
+
+[[integrations]]
+id = "11st"
+name = "11st (11번가) Open API"
+roles = ["sales_channel"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Seller account (individual sellers reported as allowed); API key after seller login and service registration, key validity 180 days (notice 2026-06-24); a server IP is asked for at issuance (reported)."
+commercial_terms = "Commission 7-13% by category (new domestic 사업자 sellers 6% for one year), 3.3% on prepaid shipping, 2% external-inflow fee, ₩77,000 server fee at ₩5,000,000 monthly sales (all reported, not read on an official fee page)."
+integration = "api"
+credentials = ["ELEVENST_API_KEY"]
+permissions = "Product, order, claim, promotion and notification APIs."
+rate_limits = "unknown"
+supported_operations = ["products", "orders", "claims", "promotions", "notifications"]
+manual_dependency = "Seller signup and key issuance; not needed for the first sale."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://openapi.11st.co.kr/openapi/OpenApiFrontMain.tmall", evidence = "verified", checked = "2026-09-27", note = "Open API Center; key validity 180 days (2026-06-24 notice)" },
+  { url = "https://www.windly.cc/blog/auction-gmarket-and-11th-street-fees", evidence = "reported", checked = "2026-09-27", note = "Fee levels" },
+]
+
+[[integrations]]
+id = "cafe24"
+name = "Cafe24 (own storefront, 마켓플러스 multi-channel listing, Admin API)"
+roles = ["sales_channel", "infrastructure"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Anyone can open a store and a developer account; selling needs 사업자등록, 통신판매업 신고 and a PG contract (KG이니시스, 토스페이먼츠, KCP, NICE ...; Toss Payments card fee 3.4% plus signup ₩220,000 and annual ₩110,000, VAT extra, with 영세/중소 discounts)."
+commercial_terms = "마켓플러스 is free and pushes listings to about 60 channels including Naver Smart Store, Coupang, 11st, Gmarket, Auction, 톡스토어, SSG and AliExpress."
+integration = "api"
+credentials = ["CAFE24_CLIENT_ID", "CAFE24_CLIENT_SECRET", "CAFE24_MALL_ID"]
+permissions = "OAuth2 Admin API and Front API scopes chosen per app."
+rate_limits = "unknown"
+supported_operations = ["products", "orders", "customers", "multi-channel listing through 마켓플러스"]
+manual_dependency = "Store creation, PG contract, per-channel account linking. Not needed for the first sale; a fallback if one-API-to-many-channels becomes worth it."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.cafe24.com/commerce/channel/market.html", evidence = "verified", checked = "2026-09-27", note = "마켓플러스 channel list" },
+  { url = "https://developers.cafe24.com/docs/api/admin/", evidence = "verified", checked = "2026-09-27", note = "Admin API reference" },
+  { url = "https://www.tosspayments.com/about/fee", evidence = "verified", checked = "2026-09-27", note = "PG fee schedule" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Other suppliers
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "alibaba_1688"
+name = "1688.com (wholesale, mainland China)"
+roles = ["supplier"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = false
+eligibility = "Ships inside mainland China only; a Korean buyer needs a forwarding warehouse (배송대행지) or purchasing agent. Payment by an internationally enabled card or KakaoPay (+2%) in the 외화-한국 원 flow, WorldFirst for larger sums (all reported)."
+commercial_terms = "Wholesale prices with MOQ; goods arrive as stock, so every lot is a commercial import (사업자 수입신고, duty and VAT from the first won). Buyer API only for partner tiers (ERP vendors, importers buying ≥ ¥100M/yr)."
+integration = "csv"
+credentials = []
+permissions = "None for a small buyer."
+rate_limits = "n/a"
+supported_operations = ["CSV import of hand-picked products (arbitrage scan --source csv:...)"]
+manual_dependency = "Manual browsing and ordering, agent or forwarder for shipping, manual customs declaration or a 관세사."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.windly.cc/blog/1688-how-to-pay", evidence = "reported", checked = "2026-09-27", note = "2025-08-08: payment options for Korean buyers" },
+  { url = "https://www.howtotao.com/1688-cross-border-partner-program/", evidence = "reported", checked = "2026-09-27", note = "2024-06-13: API limited to partner tiers" },
+  { url = "https://open.1688.com/", evidence = "unknown", checked = "2026-09-27", note = "Loads a Chinese navigation shell only" },
+]
+
+[[integrations]]
+id = "alibaba_com"
+name = "Alibaba.com (B2B wholesale with Trade Assurance)"
+roles = ["supplier"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Any buyer; Trade Assurance covers quality and on-time shipment; pay by card, PayPal, T/T or transfer with no buyer-side fee. Supplier-set MOQ; samples usually offered."
+commercial_terms = "Stock purchases only (freight or courier to the buyer, commercial import clearance). Suitable for replenishing a proven product, not for the first sale."
+integration = "none"
+credentials = []
+permissions = "No buyer API."
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "RFQ, negotiation, payment and import clearance by hand."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://buyer.alibaba.com/page/tradeassurance/buyer/story.html", evidence = "verified", checked = "2026-09-27", note = "Trade Assurance coverage and payment methods" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Logistics
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "aliexpress_shipping_to_korea"
+name = "AliExpress/Cainiao shipping lines into Korea (CJ대한통운 last leg)"
+roles = ["logistics"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Chosen per order at AliExpress checkout; no separate account. Reported lines: Cainiao Super Economy 21-40 days, AliExpress Standard 7-15 days, '5-day delivery' 3-5 days, EMS/DHL 2-5 days. CJ대한통운 delivers the Korean leg for Cainiao."
+commercial_terms = "Cost is per product and line and is returned by the AliExpress freight API (see aliexpress entry); it is never zero by default. Direct delivery to a marketplace buyer makes the buyer the importer (their 개인통관고유부호), which is the 구매대행 model."
+integration = "api_via_aliexpress"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = ["freight quote per product and destination (via AliExpress API)", "tracking (via AliExpress API or carrier site)"]
+manual_dependency = "Choosing the line at checkout; reconciling Cainiao tracking with the Korean carrier number."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.cjlogistics.com/ko/newsroom/news/NR_00001035", evidence = "verified", checked = "2026-09-27", note = "2023-03-15: CJ O-NE handles Cainiao's Korean leg" },
+]
+
+[[integrations]]
+id = "malltail_china"
+name = "Malltail (몰테일) forwarding warehouse, Weihai China"
+roles = ["logistics"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Consumer or business account; needed when a 1688/Taobao seller does not ship abroad or for consolidation."
+commercial_terms = "Air from $10.77 (0.5 kg) to $130.77 (20 kg); sea from $9.90 (0.5 kg) to $102.60 (30 kg); $10 business-clearance fee; $1 fuel surcharge (official price list)."
+integration = "none"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Warehouse address registration, shipment requests and customs paperwork in the Malltail dashboard."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://post.malltail.com/services/price_list/CN/KR/KR", evidence = "verified", checked = "2026-09-27", note = "China to Korea price list" },
+]
+
+[[integrations]]
+id = "domestic_parcel"
+name = "Domestic parcel carriers (Hanjin 원클릭, CJ대한통운 소호 contract)"
+roles = ["logistics"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Hanjin 원클릭 needs no contract (₩4,500 per box up to 30 boxes/month, down to ₩2,650 at 501+, VAT incl., reported). CJ 소호 contract: ₩2,990/₩2,890/₩2,790 for ≤2 kg at 30+/300+/500+ boxes a month, requires 택배페이, individuals excluded (official)."
+commercial_terms = "Only relevant once stock is held in Korea. Carrier waybill APIs require a contract; tracking for any carrier via the 스마트택배 API (reported)."
+integration = "none"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Waybill printing and pickup booking in the carrier portal until a contract and API exist."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://m.logii.com/Logii_Taekbae/BizCompany.asp", evidence = "verified", checked = "2026-09-27", note = "CJ 소호사업자 contract rates" },
+  { url = "https://hanjinoneclick.oopy.io/1d887dcd-d92a-80be-85cb-e2395478588c", evidence = "reported", checked = "2026-09-27", note = "Hanjin 원클릭 rates" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Research and data sources
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "koreaexim_fx"
+name = "한국수출입은행 exchange-rate API"
+roles = ["research_source"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Free key on registration."
+commercial_terms = "1,000 calls per day; rates published about 11:00 on business days, null otherwise. Endpoint oapi.koreaexim.go.kr/site/program/financial/exchangeJSON with authkey, searchdate and data=AP01. The old www domain was retired 2026-04-30."
+integration = "api"
+credentials = ["KOREAEXIM_API_KEY"]
+permissions = "Read-only."
+rate_limits = "1,000 calls/day (result code 4 beyond)"
+supported_operations = ["daily KRW rates for USD, CNY and others"]
+manual_dependency = "Key registration. Replaces open.er-api.com, which this environment could not reach on 2026-09-27."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.koreaexim.go.kr/ir/HPHKIR020M01?apino=2&viewtype=C", evidence = "verified", checked = "2026-09-27", note = "API guide, quota and endpoint" },
+  { url = "https://www.data.go.kr/data/3068846/openapi.do", evidence = "verified", checked = "2026-09-27", note = "data.go.kr listing, modified 2026-04-30" },
+]
+
+[[integrations]]
+id = "open_er_api"
+name = "open.er-api.com (current FX fallback in src/arbitrage/fx.py)"
+roles = ["research_source"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "No key; attribution link required; once-daily update; HTTP 429 with a 20-minute cooldown when abused."
+commercial_terms = "Free tier terms; not a Korean official rate."
+integration = "api"
+credentials = []
+permissions = "Read-only."
+rate_limits = "Unpublished; 429 with 20-minute cooldown"
+supported_operations = ["daily rates"]
+manual_dependency = "None, but unreachable from this cloud environment on 2026-09-27; the code already falls back to config rates."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.exchangerate-api.com/docs/free", evidence = "verified", checked = "2026-09-27", note = "Free endpoint terms" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Korean government services (registrations the business depends on; manual, no API for us)
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "hometax_business_registration"
+name = "국세청 홈택스: 사업자등록"
+roles = ["infrastructure"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Required before selling; register within 20 days of starting (부가가치세법 §8; 1% penalty on unregistered sales). 업종코드 525105 해외직구대행업 for the 구매대행 model, 525101 전자상거래 소매업 when holding stock. 간이과세자 while prior-year supply is under ₩104,000,000."
+commercial_terms = "For 구매대행, VAT is charged on the agency fee only when the buyer clears customs under their own code, bears duty and VAT, and the fee is itemised; goods cleared in the seller's name count as a supply of goods (full price taxable). 현금영수증 must be issued for cash payments of ₩100,000 or more."
+integration = "none"
+credentials = ["BUSINESS_REGISTRATION_NUMBER"]
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Owner files at 홈택스; the number goes into every marketplace signup and every 세금계산서."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=25&ccfNo=2&cciNo=1&cnpClsNo=1", evidence = "verified", checked = "2026-09-27", note = "Registration duty and penalty" },
+  { url = "https://www.nts.go.kr/nts/na/ntt/selectNttInfo.do?nttSn=1322104&mi=40580", evidence = "verified", checked = "2026-09-27", note = "국세청 FAQ 2023-03-08: 업종코드 525105" },
+  { url = "https://nts.go.kr/nts/cm/cntnts/cntntsView.do?mi=40574&cntntsId=239004", evidence = "verified", checked = "2026-09-27", note = "국세청 guidance for 해외직구대행 사업자: fee-only VAT base and its conditions" },
+  { url = "https://www.korea.kr/news/policyNewsView.do?newsId=148930428", evidence = "verified", checked = "2026-09-27", note = "간이과세 threshold ₩104,000,000 from 2024-07-01" },
+]
+
+[[integrations]]
+id = "gov24_mail_order_registration"
+name = "정부24 / 구청: 통신판매업 신고"
+roles = ["infrastructure"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Required under 전자상거래법 §12 unless exempt (prior-year transactions under 50, or 간이과세자, per 공정위 고시 제2020-11호). Marketplaces ask for the number anyway (Coupang waives it for 간이과세자 since 2026-06). Prerequisite: 구매안전서비스 이용확인증 from the marketplace or a PG."
+commercial_terms = "No filing fee; 등록면허세 ₩40,500 (cities of 500,000+), ₩22,500 (other cities) or ₩12,000 (counties) each January (reported)."
+integration = "none"
+credentials = ["MAIL_ORDER_REGISTRATION_NUMBER"]
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Owner files at 정부24 and collects the certificate at the 구청; the number must appear on the storefront."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000191541", evidence = "verified", checked = "2026-09-27", note = "Exemption 고시 metadata only; body could not be read" },
+  { url = "https://view.asiae.co.kr/article/2020052110140895154", evidence = "reported", checked = "2026-09-27", note = "Exemption criteria: under 50 transactions or 간이과세자" },
+  { url = "https://hometax-go.kr/mailorder-costs/", evidence = "reported", checked = "2026-09-27", note = "등록면허세 amounts" },
+]
+
+[[integrations]]
+id = "unipass_customs"
+name = "관세청 UNIPASS: 개인통관고유부호, 수입신고, 구매대행업자 등록"
+roles = ["infrastructure"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Every buyer of a 구매대행 parcel needs their own 개인통관고유부호 (issued free at UNIPASS; from 2026-06-18 valid one year and renewable). A seller importing stock declares as a business (사업자통관고유부호) and pays duty and VAT from the first won. A 통신판매업자 whose prior-year 구매대행 import value reaches ₩1,000,000,000 must register as 구매대행업자 with customs (관세법 §222①7) by the end of March; unregistered: fine up to ₩20,000,000."
+commercial_terms = "Personal-use parcels: duty-free up to USD 150 (USD 200 from the US) under 목록통관 when the item is not on the 12-category exclusion list (food, supplements, alcohol, tobacco, functional cosmetics, medicines, radio equipment, quarantine items ...). Above that or excluded: the full value (goods + freight + insurance) is taxed, duty then VAT 10%. Resale goods: declaration and tax regardless of amount. Using the seller's or another person's code for a customer's parcel is a customs and privacy offence."
+integration = "none"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Owner obtains their own code and business clearance identity; each customer supplies theirs through the marketplace checkout; declarations for stock imports go through UNIPASS or a 관세사."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.customs.go.kr/call/ad/crmcc/selectIssueView.do?idx=133&mi=6828", evidence = "verified", checked = "2026-09-27", note = "관세청: goods bought for resale must be declared and taxed regardless of amount" },
+  { url = "https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=1504&ccfNo=3&cciNo=1&cnpClsNo=2", evidence = "verified", checked = "2026-09-27", note = "법제처 (updated 2026-08-15): USD 150/200 thresholds, full-value taxation, 합산과세" },
+  { url = "https://www.customs.go.kr/kcs/cm/cntnts/cntntsView.do?mi=2821&cntntsId=819", evidence = "verified", checked = "2026-09-27", note = "목록통관 exclusion list" },
+  { url = "https://www.customs.go.kr/kcs/na/ntt/selectNttInfo.do?mi=2891&nttSn=10069842&nttSnUrl=search", evidence = "verified", checked = "2026-09-27", note = "합산과세 rules from 2022-11-17" },
+  { url = "https://www.gov.kr/portal/service/serviceInfo/122000000014", evidence = "verified", checked = "2026-09-27", note = "개인통관고유부호 issuance" },
+  { url = "https://www.nlic.go.kr/nlic/logpolDt.action?fldLogpolRefSeq=1599&command=VIEW", evidence = "verified", checked = "2026-09-27", note = "Codes valid one year from 2026-06-18" },
+  { url = "https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=12200000398", evidence = "verified", checked = "2026-09-27", note = "구매대행업자 등록 service" },
+  { url = "https://www.daeryunlaw-tax.com/lawInfo_new/10546", evidence = "reported", checked = "2026-09-27", note = "2026-08-10: 2026 amendment widening agents' joint tax liability" },
+  { url = "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EA%B4%80%EC%84%B8%EB%B2%95%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99/%EC%A0%9C45%EC%A1%B0", evidence = "unknown", checked = "2026-09-27", note = "관세법 시행규칙 제45조 (USD 150 personal, USD 250 sample) unreachable; text seen only on secondary sites" },
+]
+
+[[integrations]]
+id = "product_certification_authorities"
+name = "KC / 전파법 / 식약처 gates (국가기술표준원, 국립전파연구원, 식품의약품안전처)"
+roles = ["infrastructure"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Per product category, before listing. 전기용품·생활용품: 안전인증/안전확인 goods need the KC mark; 구매대행 of unmarked goods is banned except items in 시행규칙 별표 13. 어린이제품 (for age 13 and under): 구매대행 without KC is banned outright. 방송통신기자재 (Bluetooth, Wi-Fi, RF): 적합성평가 required; 구매대행 allowed for one unit per person for personal use with the notice, never for stock (법제처 해석 21-0097). Food, supplements and food-contact items: 수입식품 인터넷 구매대행업 등록 with 식약처. Cosmetics: 화장품책임판매업 등록 (수입대행형). Medical devices: 판매업 신고 and 식약처 approval. 의약품, 담배, 주류: not sold online."
+commercial_terms = "Penalties reach imprisonment or fines in the tens of millions of won; 국표원 removed 85 of 420 sampled 구매대행 products in its 2026-05 survey (reported)."
+integration = "none"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "Evidence (certificate number or exemption basis) recorded per SKU before listing; the keyword compliance filter in scan only triages."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://www.kats.go.kr/content.do?cmsid=44", evidence = "verified", checked = "2026-09-27", note = "KC tiers" },
+  { url = "https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=1504&ccfNo=2&cciNo=2&cnpClsNo=2", evidence = "verified", checked = "2026-09-27", note = "구매대행 of unmarked goods banned except 별표 13" },
+  { url = "https://www.kats.go.kr/content.do?cmsid=496", evidence = "verified", checked = "2026-09-27", note = "어린이제품 tiers" },
+  { url = "https://www.rra.go.kr/ko/notice/D_e_faq2_1.do?fa_type=e&fa_category=compt", evidence = "verified", checked = "2026-09-27", note = "RRA FAQ: 구매대행 one unit per person with notice" },
+  { url = "https://www.moleg.go.kr/lawinfo/nwLwAnInfo.mo?mid=a10106020000&cs_seq=426749", evidence = "verified", checked = "2026-09-27", note = "법제처 해석 21-0097 (2021-05-12): resale of an exempt unit needs 적합성평가" },
+  { url = "https://www.mfds.go.kr/brd/m_824/view.do?seq=35125", evidence = "verified", checked = "2026-09-27", note = "식약처: 수입식품 인터넷 구매대행업 영업등록" },
+  { url = "https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=1301&ccfNo=2&cciNo=2&cnpClsNo=2", evidence = "verified", checked = "2026-09-27", note = "Cosmetics: 책임판매업 (수입대행형)" },
+  { url = "https://www.safetykorea.kr/policy/targetsSafetyCert2", evidence = "unknown", checked = "2026-09-27", note = "제품안전정보센터 unreachable (503)" },
+]
+
+[[integrations]]
+id = "naver_smartstore"
+name = "Naver Smart Store (seller center + Commerce API)"
+roles = ["sales_channel"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Overseas-product selling rights (해외상품판매권한), which unlock an overseas 출고지, the 해외 icon, 개인통관고유부호 collection and the 구매대행 (수입식품/화장품) categories, are granted to 국내사업자 only since 2026-06-24; a 국내 개인 seller cannot obtain them. So: 사업자등록증 (and 통신판매업 신고번호 once past 50 구매확정 or when not 간이과세자), 통장사본, 3 business days review, no opening fee stated. Food and cosmetics categories additionally need the 식약처 영업신고/등록 uploaded."
+commercial_terms = "Fees from payments on or after 2025-06-02: 판매수수료 3% (2.73% + VAT) on the product amount, or 판매자 마케팅 수수료 1% when the buyer came through the seller's own link or Naver ads; plus Npay 주문관리 수수료 by 국세청 grade from 2025-10-01: 영세 1.947%, 중소 2.563-3.003%, 일반 3.630% (VAT incl.), charged on product and shipping amounts; a new business starts at 일반, so about 6.63% total. Payout 1 business day after the order ends (구매확정, auto about 8 days after delivery); 빠른정산 excludes overseas-shipped items. Listing rules for overseas goods: 출고지 set to an overseas address, '해외' prefix in the product name, order form forces the buyer's 개인통관고유부호 (shown in the seller center and API until the order ends, then deleted). 발송기한 3 business days after payment with one 발송지연 extension up to 90 days; no tracking event within 15 business days on an overseas 출고지 counts as a false waybill (3 penalty points); KC, 어린이제품, 의료기기, 식품, 화장품 gates apply."
+integration = "api"
+credentials = ["NAVER_COMMERCE_CLIENT_ID", "NAVER_COMMERCE_CLIENT_SECRET"]
+permissions = "커머스API센터 account for the store's 통합매니저 (국내 개인 or 사업자; 해외판매자 excluded); one '내스토어 애플리케이션' per store, immediate registration, mandatory IPv4 whitelist since 2024-09-11, e-mail re-authentication every 180 days or the app goes dormant and the secret rotates. OAuth2 client-credentials: client_secret_sign = base64(bcrypt(client_id + '_' + timestamp, client_secret)), type SELF, token valid 3 hours. No sandbox; tokens need a real, actively selling store."
+rate_limits = "Token bucket per API per application (429 GW.RATE_LIMIT with GNCP-GW-RateLimit-* headers); default about 2 requests/second per API for store apps (Naver staff answer on the official discussion board), limits described as 'fluid, no exceptions'."
+supported_operations = ["products: create/update/delete/bulk update, categories, attributes, origin, 상품정보제공고시", "orders: changed-order polling, product-order query (returns individualCustomUniqueCode), 발주 확인, 발송 처리 with carrier code (CH1 기타택배 for overseas), 발송지연 처리", "claims: cancel, return (approve/hold/reject), exchange", "settlement: daily and per-order settlement, fee and VAT statements", "customer and product inquiries", "seller address book, 오늘출발, N배송"]
+manual_dependency = "Business registration and mail-order filing; seller signup, document upload and review; 해외상품판매 terms consent and category rights; overseas 출고지/반품지 setup; API app creation with IP registration and 180-day re-auth; capturing the customs code before order end; per-SKU certification entries; physical returns and 환불보류 fee claims; penalty appeals by e-mail; no webhooks, so orders are polled."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=3757", evidence = "verified", checked = "2026-09-27", note = "Since 2026-06-24 해외상품판매권한 for 국내사업자 only; 구매대행 categories need it first" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=3664", evidence = "verified", checked = "2026-09-27", note = "Seller types, documents, 사업자 전환 and 통신판매업 thresholds" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=15759", evidence = "verified", checked = "2026-09-27", note = "판매수수료 3% / 판매자 마케팅 1% from 2025-06-02" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=3713", evidence = "verified", checked = "2026-09-27", note = "Npay 주문관리 수수료 by grade from 2025-10-01" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=4022", evidence = "verified", checked = "2026-09-27", note = "Overseas 출고지 triggers 해외직배송 notice and customs-code collection" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=17353", evidence = "verified", checked = "2026-09-27", note = "'해외' prefix mandatory for goods shipped or bought from abroad" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=12233", evidence = "verified", checked = "2026-09-27", note = "Customs code visible until order end, then deleted" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=3561", evidence = "verified", checked = "2026-09-27", note = "발송기한 3 business days, delay handling" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=3630", evidence = "verified", checked = "2026-09-27", note = "Settlement 1 business day after order end" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=5863", evidence = "verified", checked = "2026-09-27", note = "빠른정산 conditions; overseas-shipped items excluded" },
+  { url = "https://help.sell.smartstore.naver.com/faq/content.help?faqId=12929", evidence = "verified", checked = "2026-09-27", note = "Commerce API app: one per store, IP whitelist, 180-day re-auth" },
+  { url = "https://apicenter.commerce.naver.com/docs/auth", evidence = "verified", checked = "2026-09-27", note = "OAuth2 client-credentials with bcrypt signature, 3-hour token" },
+  { url = "https://apicenter.commerce.naver.com/docs/restriction", evidence = "verified", checked = "2026-09-27", note = "Rate limiting policy" },
+  { url = "https://apicenter.commerce.naver.com/docs/commerce-api/current/seller-get-product-orders-pay-order-seller", evidence = "verified", checked = "2026-09-27", note = "Product-order query; schema field individualCustomUniqueCode" },
+  { url = "https://github.com/commerce-api-naver/commerce-api/discussions/6", evidence = "reported", checked = "2026-09-27", note = "Naver staff: default about 2 RPS per API" },
+  { url = "https://www.news1.kr/it-science/internet-platform/6068446", evidence = "reported", checked = "2026-09-27", note = "2026-02-11: enforcement against 국내출고 listings shipped from abroad" },
+]
+
+[[integrations]]
+id = "naver_search_api"
+name = "Naver Developers 검색 API > 쇼핑 (current market source in src/arbitrage/sources/naver_shopping.py)"
+roles = ["research_source"]
+verdict = "no_go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Discontinued. NAVER API 서비스 이용약관 (2026-09-07 개정, 부칙 시행 2026-07-31) 제2조③: the 'Search API' 쇼핑, 책 and 학술정보 data services ended at 2026-07-31 24:00 and cannot be used from 2026-08-01 even by existing users. New applications for the other search APIs stopped 2026-07-30; existing users keep them until 2027-06-30 before moving to NAVER API HUB, which lists no shopping product search."
+commercial_terms = "Even while it ran, the terms allowed results only for displaying Naver search results unaltered with source links, and forbade storing beyond short caches, selling to third parties or feeding AI. It was never a licensed price feed."
+integration = "api"
+credentials = ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET"]
+permissions = "None from 2026-08-01."
+rate_limits = "Was 25,000 calls/day."
+supported_operations = []
+manual_dependency = "Korean market prices need a new, licensed source: manual checks, Coupang Partners search (10 calls/hour), a data vendor, or the seller's own sales data. Scraping Naver Shopping is not an option."
+health = "unverified"
+last_verified = "2026-09-27"
+sources = [
+  { url = "https://developers.naver.com/products/terms/", evidence = "verified", checked = "2026-09-27", note = "2026-09-07 terms, 부칙 제2조: 쇼핑 search API ended 2026-07-31" },
+  { url = "https://developers.naver.com/docs/serviceapi/search/shopping/shopping.md", evidence = "verified", checked = "2026-09-27", note = "Old API reference, still online" },
+  { url = "https://www.ncloud.com/product/applicationService/naverApiHub", evidence = "verified", checked = "2026-09-27", note = "NAVER API HUB: search, trend, shopping insight; no product search guide" },
+]
