@@ -24,7 +24,7 @@ arbitrage-ops = "arbitrage.ops.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-arbitrage = ["default.toml", "ops/schema.sql", "ops/charters.toml"]
+arbitrage = ["default.toml", "ops/schema.sql", "ops/charters.toml", "ops/router/schema.sql", "ops/router/catalog.simulated.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

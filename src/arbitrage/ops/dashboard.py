@@ -15,7 +15,7 @@ from .core import Core
 from .metrics import compute, inventory_age
 
 
-def dashboard(core: Core, mode: str = LIVE, orchestrator=None, engine=None) -> dict[str, Any]:
+def dashboard(core: Core, mode: str = LIVE, orchestrator=None, engine=None, router=None) -> dict[str, Any]:
     m = core.mandate
     with core.db.transaction() as tx:
         metrics = compute(tx, core.ledger, mode)
@@ -39,6 +39,11 @@ def dashboard(core: Core, mode: str = LIVE, orchestrator=None, engine=None) -> d
         spent_today = core.governor.daily_spend(tx, mode)
         exposure = core.governor.exposure(tx, mode)
     counts_toward_goal = mode == LIVE
+    router_section = None
+    if router is not None:
+        from .router.reporting import router_report
+
+        router_section = router_report(router, mode)
     return {
         "generated_at": now_iso(),
         "mode": mode,
@@ -52,7 +57,7 @@ def dashboard(core: Core, mode: str = LIVE, orchestrator=None, engine=None) -> d
                     else "simulated figures never count toward the goal",
         },
         "mandate": {"environment": m.environment, "complete": m.complete, "pending_fields": m.pending_fields(), "fingerprint": m.fingerprint},
-        "sales": {"orders_placed": metrics.orders_placed, "gross_sales": metrics.gross_sales, "net_revenue": metrics.net_revenue,
+        "sales": {"orders_placed": metrics.orders_placed, "requests_routed": metrics.requests_routed, "gross_sales": metrics.gross_sales, "net_revenue": metrics.net_revenue,
                   "settled_cash": metrics.settled_cash, "payment_receivables": metrics.payment_receivables},
         "profit": {"realized": metrics.realized_profit, "provisional": metrics.provisional_profit,
                    "contribution": metrics.contribution_profit, "operating": metrics.operating_profit,
@@ -87,6 +92,7 @@ def dashboard(core: Core, mode: str = LIVE, orchestrator=None, engine=None) -> d
         "integrations": [{"id": i["id"], "status": i["status"], "connected": i["connected"], "health": i["health"],
                           "production_ready": i["production_ready"], "verdict": i["verdict"]} for i in integrations],
         "trial_balance_ok": metrics.trial_balance_ok,
+        "router": router_section,
     }
 
 

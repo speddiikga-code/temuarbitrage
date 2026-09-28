@@ -156,11 +156,16 @@ class Database:
 
     # -- schema --------------------------------------------------------------------------------------
 
-    @staticmethod
-    def _statements() -> list[str]:
-        ddl = resources.files("arbitrage.ops").joinpath("schema.sql").read_text("utf-8")
-        stripped = "\n".join(line.split("--", 1)[0] for line in ddl.splitlines())
-        return [s.strip() for s in stripped.split(";") if s.strip()]
+    SCHEMA_FILES = ("schema.sql", "router/schema.sql")
+
+    @classmethod
+    def _statements(cls) -> list[str]:
+        out: list[str] = []
+        for name in cls.SCHEMA_FILES:
+            ddl = resources.files("arbitrage.ops").joinpath(name).read_text("utf-8")
+            stripped = "\n".join(line.split("--", 1)[0] for line in ddl.splitlines())
+            out += [s.strip() for s in stripped.split(";") if s.strip()]
+        return out
 
     def migrate(self) -> None:
         """Create every table that does not exist yet. Safe to run at every start."""

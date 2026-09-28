@@ -7,15 +7,17 @@ schema_version = 1
 environment = "live"          # this is the owner's real mandate; simulated runs use mandate.simulated.toml
 
 [business]
+domain = "compute_router"         # the business this mandate authorizes: "compute_router" (AI inference routing) or "ecommerce"
 operating_country = "pending"     # e.g. "KR"
 business_identity = "pending"     # the registered business (사업자) that sells and pays
 target_markets = "pending"        # e.g. ["KR"]
 
 [connections]
+payment_processors = "pending"    # e.g. ["stripe"] or ["tosspayments"]: who collects customer payments for the router
+# ecommerce domain only (ignored while domain = "compute_router")
 storefronts = "pending"           # e.g. ["smartstore:<store id>"]
 marketplaces = "pending"          # e.g. ["naver", "coupang"]
 suppliers = "pending"             # e.g. ["aliexpress"]  (Temu has no API and forbids scraping: CSV + manual ordering)
-payment_processors = "pending"    # e.g. ["naverpay"]  (marketplaces settle to the seller; a storefront needs a PG)
 
 [funding]
 funding_sources = "pending"       # e.g. ["bank:<bank>-<last4>"], never account numbers
@@ -28,6 +30,7 @@ max_transaction_krw = "pending"       # one supplier payment, ad charge or refun
 max_daily_spend_krw = "pending"
 max_total_exposure_krw = "pending"    # inventory + prepaid purchases + reserved budget at any time
 max_cumulative_loss_krw = "pending"   # purchasing pauses automatically when realized losses pass this
+# ecommerce domain only
 max_inventory_value_krw = "pending"   # portfolio limit
 max_sku_exposure_krw = "pending"      # concentration limit for one product
 
@@ -45,10 +48,23 @@ ai_credit_budget = "pending"          # credits per month for agent runs
 infrastructure_budget_krw = "pending" # per month
 
 [permissions]
-product_categories = "pending"        # e.g. ["kitchen", "car-accessories"]; anything else is refused
-# Any of: purchase_inventory, purchase_samples, pay_supplier, buy_shipping, pay_software, pay_infrastructure,
-#         run_ads, collect_payment, issue_refund, reinvest, list_products
+# Any of: call_providers, prepay_providers, collect_payment, issue_refund, pay_software, pay_infrastructure, reinvest,
+#         and for ecommerce: purchase_inventory, purchase_samples, pay_supplier, buy_shipping, run_ads, list_products
 external_actions = "pending"
+product_categories = "pending"        # ecommerce domain only, e.g. ["kitchen", "car-accessories"]
+
+[router]                              # GlobalCompute Router (domain = "compute_router")
+providers = "pending"                 # registry ids of model providers the platform may call, e.g. ["anthropic", "openai"]
+permitted_regions = "pending"         # provider regions a route may run in, e.g. ["us", "kr"]; never a route that evades a region rule
+permitted_task_types = "pending"      # from: coding, translation, extraction, reasoning, classification, research, image_analysis, summarization, chat
+billing_modes = "pending"             # ["own_keys"] (customer's provider keys, platform fee or savings share) and/or ["platform_credits"]
+max_request_cost_krw = "pending"      # platform-funded provider cost for one request (own-keys requests are capped by the customer)
+max_daily_inference_spend_krw = "pending"
+max_provider_prepaid_krw = "pending"  # prepaid provider credits held in total
+max_provider_exposure_krw = "pending" # prepaid credits plus open reservations at one provider
+platform_fee_rate = "pending"         # fee on metered provider cost in platform_credits mode, e.g. 0.2
+savings_share_rate = "pending"        # share of verified savings charged in own_keys mode, e.g. 0.25
+min_quality_score = "pending"         # 0..1; no route is offered below this whatever a customer asks for, e.g. 0.6
 
 [goals]
 target_realized_profit_krw = 1000000  # tracked against reconciled live net profit only, never simulated sales

@@ -1,0 +1,84 @@
+# Simulated model catalog for tests and the demo. Every price is an unverified placeholder: no provider page was
+# read for these numbers, and no simulated price is ever marked verified. The live catalog (integrations/model_catalog.toml)
+# carries prices with source, URL and date from the provider-terms work.
+schema_version = 1
+
+[[models]]
+id = "simulated:provider-a:small:us"
+provider = "simulated:provider-a"
+model = "small"
+region = "us"
+tier = 0
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding", "research"]
+context_window = 200000
+input_micros_per_mtok = 250000      # 0.25 per million input tokens, placeholder
+output_micros_per_mtok = 1250000    # 1.25 per million output tokens, placeholder
+currency = "USD"
+latency_ms = 400
+quality = {chat = 0.75, classification = 0.8, extraction = 0.72, summarization = 0.7, translation = 0.7, coding = 0.55, research = 0.5}
+terms_permit = true
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-a", date = "2026-09-28", verified = false}
+
+[[models]]
+id = "simulated:provider-a:large:us"
+provider = "simulated:provider-a"
+model = "large"
+region = "us"
+tier = 2
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding", "reasoning", "research"]
+context_window = 200000
+input_micros_per_mtok = 3000000     # 3.00 per million input tokens, placeholder
+output_micros_per_mtok = 15000000   # 15.00 per million output tokens, placeholder
+currency = "USD"
+latency_ms = 1200
+quality = {chat = 0.92, classification = 0.93, extraction = 0.93, summarization = 0.9, translation = 0.9, coding = 0.9, reasoning = 0.9, research = 0.85}
+terms_permit = true
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-a", date = "2026-09-28", verified = false}
+
+[[models]]
+id = "simulated:provider-b:medium:kr"
+provider = "simulated:provider-b"
+model = "medium"
+region = "kr"
+tier = 1
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding", "reasoning"]
+context_window = 128000
+input_micros_per_mtok = 800000      # 0.80 per million input tokens, placeholder
+output_micros_per_mtok = 4000000    # 4.00 per million output tokens, placeholder
+currency = "USD"
+latency_ms = 700
+quality = {chat = 0.85, classification = 0.88, extraction = 0.85, summarization = 0.84, translation = 0.86, coding = 0.75, reasoning = 0.7}
+terms_permit = true
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}
+
+[[models]]
+id = "simulated:provider-b:medium:eu"
+provider = "simulated:provider-b"
+model = "medium"
+region = "eu"
+tier = 1
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding", "reasoning"]
+context_window = 128000
+input_micros_per_mtok = 600000      # cheaper region, placeholder; not in the simulated mandate's permitted regions
+output_micros_per_mtok = 3000000
+currency = "USD"
+latency_ms = 900
+quality = {chat = 0.85, classification = 0.88, extraction = 0.85, summarization = 0.84, translation = 0.86, coding = 0.75, reasoning = 0.7}
+terms_permit = true
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}
+
+[[models]]
+id = "simulated:provider-b:grey:us"
+provider = "simulated:provider-b"
+model = "grey"
+region = "us"
+tier = 1
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding", "reasoning"]
+context_window = 128000
+input_micros_per_mtok = 100000      # cheapest of all, placeholder; terms do not permit routing customer work through it
+output_micros_per_mtok = 500000
+currency = "USD"
+latency_ms = 500
+quality = {chat = 0.9, classification = 0.9, extraction = 0.9, summarization = 0.9, translation = 0.9, coding = 0.9, reasoning = 0.9}
+terms_permit = false
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}

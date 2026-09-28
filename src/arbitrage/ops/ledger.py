@@ -31,16 +31,19 @@ CHART: tuple[Account, ...] = (
     Account("1100", "Payment receivables", "asset", "debit", "receivable"),
     Account("1200", "Inventory", "asset", "debit", "inventory"),
     Account("1300", "Prepaid supplier purchases", "asset", "debit", "prepaid"),
+    Account("1400", "Prepaid provider credits", "asset", "debit", "provider_prepaid"),
     Account("2000", "Supplier payables", "liability", "credit", "payable"),
     Account("2200", "Dispute provision", "liability", "credit", "dispute_provision"),
     Account("2300", "Returns provision", "liability", "credit", "returns_provision"),
     Account("2400", "Taxes collected, payable to authorities", "liability", "credit", "tax_payable"),
     Account("2500", "Accrued marketplace fees", "liability", "credit", "accrued_fees"),
+    Account("2600", "Customer prepaid balances", "liability", "credit", "customer_balances"),
     Account("3000", "Owner capital", "equity", "credit", "capital"),
     Account("4000", "Gross sales", "revenue", "credit", "gross_sales"),
     Account("4100", "Discounts", "revenue", "debit", "contra_revenue"),
     Account("4200", "Refunds", "revenue", "debit", "contra_revenue"),
     Account("5000", "Cost of goods sold", "expense", "debit", "cogs"),
+    Account("5020", "Provider inference cost", "expense", "debit", "cogs"),
     Account("5100", "Freight", "expense", "debit", "variable"),
     Account("5200", "Duties and non-recoverable taxes", "expense", "debit", "variable"),
     Account("5300", "Marketplace fees", "expense", "debit", "variable"),
@@ -62,11 +65,13 @@ CHART: tuple[Account, ...] = (
 ACCOUNTS: dict[str, Account] = {a.code: a for a in CHART}
 
 # Friendly names used by the services and the CLI.
-CASH, RECEIVABLE, INVENTORY, PREPAID = "1000", "1100", "1200", "1300"
+CASH, RECEIVABLE, INVENTORY, PREPAID, PROVIDER_PREPAID = "1000", "1100", "1200", "1300", "1400"
 PAYABLE, DISPUTE_PROVISION, RETURNS_PROVISION, TAX_PAYABLE, ACCRUED_FEES = "2000", "2200", "2300", "2400", "2500"
+CUSTOMER_BALANCES = "2600"
 CAPITAL = "3000"
 GROSS_SALES, DISCOUNTS, REFUNDS = "4000", "4100", "4200"
 COGS, FREIGHT, DUTIES, MARKETPLACE_FEES, PAYMENT_FEES, FX_COST = "5000", "5100", "5200", "5300", "5310", "5400"
+INFERENCE_COST = "5020"
 ADVERTISING, RETURN_HANDLING, WRITE_OFFS, CHARGEBACKS, VARIABLE_OPS, SAMPLES = "5500", "5600", "5610", "5620", "5700", "5720"
 RETURNS_PROVISION_EXPENSE, DISPUTE_PROVISION_EXPENSE = "5800", "5810"
 SOFTWARE, AI_CREDITS, INFRASTRUCTURE, OTHER_FIXED = "6000", "6100", "6200", "6300"

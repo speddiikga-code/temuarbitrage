@@ -120,10 +120,10 @@ class BudgetGovernor:
         return h
 
     def exposure(self, tx: Tx, mode: str) -> int:
-        """Capital at risk: inventory, prepaid purchases and money reserved but not yet spent."""
+        """Capital at risk: inventory, prepaid purchases, prepaid provider credits and money reserved but not yet spent."""
         bal = self.ledger.balances(tx, mode)
         reserved = int(tx.scalar("SELECT COALESCE(SUM(amount), 0) FROM budget_reservations WHERE mode = ? AND state = 'reserved'", (mode,)))
-        return bal[L.INVENTORY] + bal[L.PREPAID] + reserved
+        return bal[L.INVENTORY] + bal[L.PREPAID] + bal[L.PROVIDER_PREPAID] + reserved
 
     def sku_exposure(self, tx: Tx, mode: str, sku: str) -> int:
         lots = int(tx.scalar("SELECT COALESCE(SUM(remaining * unit_cost), 0) FROM inventory_lots WHERE mode = ? AND sku = ?", (mode, sku)))

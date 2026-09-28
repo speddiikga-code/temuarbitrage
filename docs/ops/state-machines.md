@@ -67,6 +67,27 @@ terminal: returned, cancelled, lost
 carrier for that shipment only (the core stores `customs_code_provided = 1`, never the code). `close_return_windows`
 moves delivered orders to `completed` after the mandate's refund-reserve days and releases their provisions.
 
+## Inference call (`inference_call`)
+
+```
+proposed → verified | rejected
+verified → reserved | rejected
+reserved → completed (provider_usage) | failed | result_unknown | cancelled
+result_unknown → completed (provider_usage) | failed
+terminal: completed, rejected, failed, cancelled
+```
+
+One action per provider attempt (`inf:<request>:<attempt>`), created by `ops/router/service.py`. `verified` re-checks
+the mandate (provider, region, task type), the catalog row (available, terms), the per-request and daily caps and the
+provider exposure; `reserved` holds the cap cost from the budget governor when the platform pays, and only a reason
+when the customer's own key pays. `completed` needs the provider's usage record: the booked cost is the record's
+count, funded from prepaid provider credits (1400) or supplier payables (2000) against inference cost (5020). A usage
+record above the reserved cap goes to `result_unknown`; reconciliation commits at the cap and pauses purchasing.
+`result_unknown` is resolved only by asking the provider (`reconcile`), never by retrying.
+
+`provider_prepayment` (buying provider credits ahead of use) runs on the Spend machine above with a `payment_receipt`
+confirmation and books 1400 against cash; it is capped by `router.max_provider_prepaid_krw` and the exposure limit.
+
 ## Listing (`listing`)
 
 ```

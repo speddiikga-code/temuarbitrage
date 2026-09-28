@@ -6,6 +6,7 @@ schema_version = 1
 environment = "simulated"
 
 [business]
+domain = "ecommerce"
 operating_country = "KR"
 business_identity = "SIMULATED seller"
 target_markets = ["KR"]

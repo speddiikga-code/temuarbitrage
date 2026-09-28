@@ -1,9 +1,11 @@
 """Controlled action gateway: every external action is an `Action` row with a unique transaction id, an idempotency
 key and a state machine, and every state that means "money moved" or "goods moved" needs an external confirmation.
 
-Three machines: customer payment (authorize, capture, settle, refund, dispute), supplier purchase (verify, reserve,
-order, pay, ship, receive, with `payment_unknown` for ambiguous results) and order fulfillment (allocate, pack, ship,
-deliver, return).  Other spending (ads, software, shipping labels) uses the generic spend machine.
+Machines: customer payment (authorize, capture, settle, refund, dispute), supplier purchase (verify, reserve,
+order, pay, ship, receive, with `payment_unknown` for ambiguous results), order fulfillment (allocate, pack, ship,
+deliver, return), listing, and the router's inference call (verify, reserve, complete against the provider's usage
+record, with `result_unknown` for a call whose answer never came back).  Other spending (ads, software, shipping
+labels, provider prepayments) uses the generic spend machine.
 
 Confirmations are unique per (source, kind, external reference): a supplier charge or processor event delivered
 twice attaches once and changes nothing the second time, and one confirmation can never advance two actions.
@@ -73,6 +75,17 @@ FULFILLMENT = {
 }
 FULFILLMENT_CONFIRMATIONS = {"shipped": "shipment", "delivered": "delivery", "returned": "return_receipt"}
 
+# One provider call at token cost (GlobalCompute Router). `completed` needs the provider's usage record; a call whose
+# result never came back parks in `result_unknown` until the provider's usage report says what was charged.
+INFERENCE = {
+    "proposed": {"verified", "rejected"},
+    "verified": {"reserved", "rejected"},
+    "reserved": {"completed", "failed", "result_unknown", "cancelled"},
+    "result_unknown": {"completed", "failed"},
+    "completed": set(), "rejected": set(), "failed": set(), "cancelled": set(),
+}
+INFERENCE_CONFIRMATIONS = {"completed": "provider_usage"}
+
 LISTING = {
     "proposed": {"verified", "rejected"},
     "verified": {"listed", "rejected"},
@@ -93,6 +106,8 @@ MACHINES: dict[str, tuple[dict, dict, str]] = {
     "infrastructure_expense": (SPEND, SPEND_CONFIRMATIONS, "proposed"),
     "shipping_purchase": (SPEND, SPEND_CONFIRMATIONS, "proposed"),
     "supplier_payment": (SPEND, SPEND_CONFIRMATIONS, "proposed"),
+    "inference_call": (INFERENCE, INFERENCE_CONFIRMATIONS, "proposed"),
+    "provider_prepayment": (SPEND, SPEND_CONFIRMATIONS, "proposed"),
 }
 
 

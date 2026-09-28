@@ -102,7 +102,7 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 
 ## Operating core (no live spending yet)
 
-`src/arbitrage/ops` is the part that will hold money and stock once accounts exist: a mandate file that fails closed
+`src/arbitrage/ops` is the part that will hold money once accounts exist: a mandate file that fails closed
 while any field is `"pending"`, a double-entry ledger, a budget governor with atomic reservations, an action gateway
 whose state machines need the counterparty's confirmation before anything is booked, pauses, an audit chain and a
 scheduler. Today it has only simulated adapters. Try it without spending anything:
@@ -114,6 +114,20 @@ arbitrage-ops status                    # live books: empty until the mandate an
 ```
 
 Design, schema, state machines, procedures, the dashboard API and the readiness report are in [docs/ops/](docs/ops/).
+
+## GlobalCompute Router (the current business, simulated only)
+
+On 2026-09-28 the owner switched the business the core runs from dropship arbitrage to routing AI inference: one
+request in, the cheapest route that meets the customer's quality bar and every compliance rule out. `mandate.toml`
+says `business.domain = "compute_router"`; `src/arbitrage/ops/router` adds the intent compiler, compressor, model
+catalog with price evidence, cost-aware planner, semantic cache, quality judge and two billing modes on top of the
+same ledger, gateway and policy. It never routes around provider terms, regions or pricing. No customer, provider
+account or live request exists; see [docs/ops/router.md](docs/ops/router.md).
+
+```bash
+arbitrage-ops --mode simulated router demo      # three simulated requests, all labelled SIMULATED
+arbitrage-ops --mode simulated router catalog   # every price marked UNVERIFIED
+```
 
 ## Development
 

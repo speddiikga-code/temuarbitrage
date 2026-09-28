@@ -29,6 +29,7 @@ from .mandate import Mandate
 NEW_COMMITMENT_KINDS = frozenset({
     "supplier_purchase", "sample_purchase", "supplier_payment", "advertising", "software_expense",
     "infrastructure_expense", "reinvestment", "listing",
+    "inference_call", "provider_prepayment",   # GlobalCompute Router: a provider call, and buying provider credits
 })
 # Actions that serve obligations we already have: allowed during a purchasing pause, blocked only by `all`.
 OBLIGATION_KINDS = frozenset({"customer_payment", "fulfillment", "shipping_purchase", "refund", "customer_support"})
@@ -204,7 +205,7 @@ class Guardrails:
         facts["spent_today"] = int(spent)
         if int(spent) >= m.krw("limits.max_daily_spend_krw"):
             triggered.append("daily_spend_limit_reached")
-        exposure = bal[L.INVENTORY] + bal[L.PREPAID] + int(tx.scalar(
+        exposure = bal[L.INVENTORY] + bal[L.PREPAID] + bal[L.PROVIDER_PREPAID] + int(tx.scalar(
             "SELECT COALESCE(SUM(amount), 0) FROM budget_reservations WHERE mode = ? AND state = 'reserved'", (mode,)))
         facts["exposure"] = exposure
         if exposure >= m.krw("limits.max_total_exposure_krw"):

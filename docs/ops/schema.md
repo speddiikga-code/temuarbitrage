@@ -28,11 +28,22 @@ that holds money or state has `mode` (`simulated` | `live`).
 | `evidence` | Files the decisions cite (quotes, screenshots, certificates), by hash | `sha256`, `record_type`, `record_id` |
 | `audit_log` | Hash-chained record of every authorization or money change | `seq` BIGSERIAL, `prev_hash`, `hash`, `mandate_fingerprint` |
 
+Router tables (`src/arbitrage/ops/router/schema.sql`, applied by the same `migrate()`):
+
+| Table | Purpose | Keys and constraints |
+|---|---|---|
+| `customers` | Router customers: billing mode, processor, VAT rate and basis, region, provider credential *references* (names, never values), cache scope | `id` PK, `mode` |
+| `model_catalog` | Provider/model/region rows: tier, task types, context window, prices in micro-units per million tokens, latency, quality per task type (learned), availability, terms, evidence | `id` PK (`provider:model:region`), `mode` |
+| `routed_requests` | One row per request with the persisted step, plan, tokens, costs, charge, fee, tax, quality, judge, payment and dispute window | `idempotency_key` UNIQUE, `customer_id`, `status`, `step`, `cached_from` |
+| `route_executions` | One row per provider attempt: stage (full, preprocess, residual, escalation), catalog row, action, tokens, cost, funding (customer_key, prepaid, payable, none), FX, latency, verdict | `request_id`, `attempt`, `action_id` |
+| `route_cache` | Semantic cache entries by scope, task type, language and fingerprint, with hits and expiry | UNIQUE (`scope`, `task_type`, `language`, `fingerprint`, `mode`) |
+
 ## Chart of accounts
 
-Assets 1000 Cash, 1100 Payment receivables, 1200 Inventory, 1300 Prepaid suppliers. Liabilities 2000 Supplier payables,
-2200 Dispute provision, 2300 Returns provision, 2400 Tax payable, 2500 Accrued marketplace fees. Equity 3000 Capital.
-Revenue 4000 Gross sales, 4100 Discounts, 4200 Refunds. Cost of sales and variable costs 5000 COGS, 5100 Freight,
+Assets 1000 Cash, 1100 Payment receivables, 1200 Inventory, 1300 Prepaid suppliers, 1400 Prepaid provider credits.
+Liabilities 2000 Supplier payables, 2200 Dispute provision, 2300 Returns provision, 2400 Tax payable, 2500 Accrued
+marketplace fees, 2600 Customer prepaid balances. Equity 3000 Capital. Revenue 4000 Gross sales, 4100 Discounts,
+4200 Refunds. Cost of sales and variable costs 5000 COGS, 5020 Provider inference cost, 5100 Freight,
 5200 Duties and non-recoverable taxes, 5300 Marketplace fees, 5310 Payment processing fees, 5400 Currency conversion,
 5500 Advertising, 5600 Return handling, 5610 Defects and write-offs, 5620 Chargebacks, 5700 Variable operating costs,
 5720 Samples, 5800/5810 Provision expenses. Fixed costs 6000 Software, 6100 AI credits, 6200 Infrastructure, 6300 Other.
@@ -42,6 +53,7 @@ Revenue 4000 Gross sales, 4100 Discounts, 4200 Refunds. Cost of sales and variab
 - Net revenue = gross sales − discounts − refunds.
 - Contribution profit = net revenue − COGS − variable costs.
 - Operating profit = contribution profit − fixed costs.
-- Realized profit = operating profit on orders that are settled **and** past the return window, net of fees, FX and
-  reserves. This is the only figure compared with the KRW 1,000,000 target, and only in live mode.
+- Realized profit = operating profit on orders that are settled **and** past the return window, and on routed
+  requests that are settled **and** past the dispute window, net of fees, FX and reserves. This is the only figure
+  compared with the KRW 1,000,000 target, and only in live mode.
 - Provisional profit = operating profit − realized profit.

@@ -6,6 +6,11 @@ refuse live actions while any required field is pending, and a zero limit refuse
 
 Only the owner changes the mandate, by editing the file.  Agents cannot raise limits, add funding sources
 or change payout destinations, because no code path writes this file.
+
+`business.domain` says which business the mandate authorizes: `compute_router` (AI inference routing: the
+GlobalCompute Router) or `ecommerce` (the earlier cross-border goods setup).  Generic fields are required in
+both; domain fields are required only for their domain, so a router mandate is not held up by storefronts and
+inventory limits it will never use, and an ecommerce mandate not by provider limits.
 """
 
 from __future__ import annotations
@@ -20,14 +25,19 @@ from .errors import MandateError
 
 PENDING = "pending"
 
+ECOMMERCE, COMPUTE_ROUTER = "ecommerce", "compute_router"
+DOMAINS = (COMPUTE_ROUTER, ECOMMERCE)
+
 # (section, key, type, required).  Types: str, str_list, krw (non-negative int), rate (0..1), int, days.
-FIELDS: tuple[tuple[str, str, str, bool], ...] = (
+# required: True (every domain), False (optional), or a domain name (required only when business.domain is that).
+FIELDS: tuple[tuple[str, str, str, bool | str], ...] = (
+    ("business", "domain", "str", True),
     ("business", "operating_country", "str", True),
     ("business", "business_identity", "str", True),
     ("business", "target_markets", "str_list", True),
-    ("connections", "storefronts", "str_list", True),
-    ("connections", "marketplaces", "str_list", True),
-    ("connections", "suppliers", "str_list", True),
+    ("connections", "storefronts", "str_list", ECOMMERCE),
+    ("connections", "marketplaces", "str_list", ECOMMERCE),
+    ("connections", "suppliers", "str_list", ECOMMERCE),
     ("connections", "payment_processors", "str_list", True),
     ("funding", "funding_sources", "str_list", True),
     ("funding", "payout_destinations", "str_list", True),
@@ -37,8 +47,8 @@ FIELDS: tuple[tuple[str, str, str, bool], ...] = (
     ("limits", "max_daily_spend_krw", "krw", True),
     ("limits", "max_total_exposure_krw", "krw", True),
     ("limits", "max_cumulative_loss_krw", "krw", True),
-    ("limits", "max_inventory_value_krw", "krw", True),
-    ("limits", "max_sku_exposure_krw", "krw", True),
+    ("limits", "max_inventory_value_krw", "krw", ECOMMERCE),
+    ("limits", "max_sku_exposure_krw", "krw", ECOMMERCE),
     ("reserves", "min_cash_reserve_krw", "krw", True),
     ("reserves", "refund_reserve_rate", "rate", True),
     ("reserves", "refund_reserve_days", "days", True),
@@ -46,10 +56,36 @@ FIELDS: tuple[tuple[str, str, str, bool], ...] = (
     ("reinvestment", "reinvestment_rate", "rate", True),
     ("budgets", "ai_credit_budget", "int", True),
     ("budgets", "infrastructure_budget_krw", "krw", True),
-    ("permissions", "product_categories", "str_list", True),
+    ("permissions", "product_categories", "str_list", ECOMMERCE),
     ("permissions", "external_actions", "str_list", True),
+    # GlobalCompute Router: what the platform may call, for whom, at what cost, and how it bills.
+    ("router", "providers", "str_list", COMPUTE_ROUTER),            # registry ids of model providers we may call
+    ("router", "permitted_regions", "str_list", COMPUTE_ROUTER),    # provider regions a route may run in
+    ("router", "permitted_task_types", "str_list", COMPUTE_ROUTER), # task types the router accepts
+    ("router", "billing_modes", "str_list", COMPUTE_ROUTER),        # own_keys and/or platform_credits
+    ("router", "max_request_cost_krw", "krw", COMPUTE_ROUTER),      # platform-funded provider cost per request
+    ("router", "max_daily_inference_spend_krw", "krw", COMPUTE_ROUTER),
+    ("router", "max_provider_prepaid_krw", "krw", COMPUTE_ROUTER),  # prepaid provider credits held in total
+    ("router", "max_provider_exposure_krw", "krw", COMPUTE_ROUTER), # prepaid credits plus reservations at one provider
+    ("router", "platform_fee_rate", "rate", COMPUTE_ROUTER),        # fee on metered provider cost (platform_credits)
+    ("router", "savings_share_rate", "rate", COMPUTE_ROUTER),       # share of verified savings (own_keys)
+    ("router", "min_quality_score", "rate", COMPUTE_ROUTER),        # no route below this, whatever the customer asks
     ("goals", "target_realized_profit_krw", "krw", False),
 )
+
+BILLING_MODES = ("own_keys", "platform_credits")
+TASK_TYPES = ("coding", "translation", "extraction", "reasoning", "classification", "research", "image_analysis",
+              "summarization", "chat")
+
+
+def required_fields(domain: str | None) -> list[str]:
+    """Field names required for `domain`; with no domain known, every domain's fields (fail closed)."""
+    out = []
+    for section, key, _, required in FIELDS:
+        if required is True or (required is not False and (domain is None or required == domain)):
+            out.append(f"{section}.{key}")
+    return out
+
 
 # What the mandate's `external_actions` list may contain, and which action kinds each word covers.
 EXTERNAL_ACTIONS: dict[str, tuple[str, ...]] = {
@@ -64,6 +100,9 @@ EXTERNAL_ACTIONS: dict[str, tuple[str, ...]] = {
     "issue_refund": ("refund",),
     "reinvest": ("reinvestment",),
     "list_products": ("listing",),
+    # GlobalCompute Router
+    "call_providers": ("inference_call",),          # send a customer's task to a model provider at token cost
+    "prepay_providers": ("provider_prepayment",),   # buy provider credits with the platform's money
 }
 
 
@@ -78,8 +117,14 @@ class Mandate:
 
     # -- state ---------------------------------------------------------------------------------------
 
+    @property
+    def domain(self) -> str | None:
+        """`compute_router` or `ecommerce`; None while business.domain is pending."""
+        value = self.values.get("business.domain", PENDING)
+        return None if value == PENDING else value
+
     def pending_fields(self) -> list[str]:
-        return [f"{s}.{k}" for s, k, _, required in FIELDS if required and self.values.get(f"{s}.{k}") == PENDING]
+        return [name for name in required_fields(self.domain) if self.values.get(name) == PENDING]
 
     @property
     def complete(self) -> bool:
@@ -122,6 +167,20 @@ class Mandate:
         if category is None:
             return True
         return category in self.strings("permissions.product_categories")
+
+    # -- router accessors --------------------------------------------------------------------------------
+
+    def permits_provider(self, provider: str) -> bool:
+        return provider in self.strings("router.providers")
+
+    def permits_region(self, region: str) -> bool:
+        return region in self.strings("router.permitted_regions")
+
+    def permits_task_type(self, task_type: str) -> bool:
+        return task_type in self.strings("router.permitted_task_types")
+
+    def permits_billing_mode(self, billing_mode: str) -> bool:
+        return billing_mode in self.strings("router.billing_modes")
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -172,6 +231,15 @@ def parse_mandate(data: dict[str, Any], path: str = "<memory>") -> Mandate:
     for section, key, kind, required in FIELDS:
         raw = data.get(section, {}).get(key, PENDING)
         values[f"{section}.{key}"] = _parse(f"{section}.{key}", kind, raw)
+    domain = values["business.domain"]
+    if domain != PENDING and domain not in DOMAINS:
+        raise MandateError(f"business.domain must be one of {DOMAINS}, not {domain!r}")
+    modes = values["router.billing_modes"]
+    if modes != PENDING and not set(modes) <= set(BILLING_MODES):
+        raise MandateError(f"router.billing_modes: each must be one of {BILLING_MODES}, got {modes!r}")
+    kinds = values["router.permitted_task_types"]
+    if kinds != PENDING and not set(kinds) <= set(TASK_TYPES):
+        raise MandateError(f"router.permitted_task_types: each must be one of {TASK_TYPES}, got {kinds!r}")
     for word in values.get("permissions.external_actions", []) if values["permissions.external_actions"] != PENDING else []:
         if word not in EXTERNAL_ACTIONS:
             raise MandateError(f"permissions.external_actions: unknown action {word!r}; known: {', '.join(EXTERNAL_ACTIONS)}")
