@@ -652,3 +652,944 @@ sources = [
   { url = "https://developers.naver.com/docs/serviceapi/search/shopping/shopping.md", evidence = "verified", checked = "2026-09-27", note = "Old API reference, still online" },
   { url = "https://www.ncloud.com/product/applicationService/naverApiHub", evidence = "verified", checked = "2026-09-27", note = "NAVER API HUB: search, trend, shopping insight; no product search guide" },
 ]
+
+# =============================================================================================
+# Task 13 (2026-09-28, thread "Provider terms and routing economics"): AI inference providers,
+# gateways and payment processors for the GlobalCompute Router. Sources and quotes are in
+# docs/provider_terms.md. Same rule as above: nothing here is connected or live.
+# =============================================================================================
+# ---------------------------------------------------------------------------------------------
+# AI inference providers (GlobalCompute Router, task 13). Roles: "supplier" = sells us inference.
+# Extra fields the router may gate on: service, customer_app_allowed (explicit | not_prohibited |
+# unclear), resale_prohibited, training_on_inputs, data_residency, pricing_url. Every entry stays
+# connected = false until a real request through the platform's own key is verified in a PR.
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "anthropic_api"
+name = "Anthropic Claude API (first-party, Claude Console)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "not used for training under the Commercial Terms (business services); see Commercial Terms and Privacy Policy"
+data_residency = "First-party API: inference_geo global (default, standard price) or us (1.1x on all token categories, Claude 4.6 and later); workspace geo us only; no Korea or Asia option. Bedrock and Google Cloud regional endpoints carry a 10% premium over global."
+pricing_url = "https://platform.claude.com/docs/en/docs/about-claude/pricing"
+eligibility = "Commercial Terms of Service (Effective 2025-06-17) A.1: \"Anthropic gives Customer permission to use the Services, including to power products and services Customer makes available to its own customers and end users ('Users')\". A Korean customer contracts with Anthropic, PBC. South Korea is listed under \"Countries, regions, and territories where we currently offer commercial API access\" (Supported Regions Policy). D.2: \"Customer and its Users may only use the Services in compliance with these Terms, including (a) the Usage Policy ... (b) our policy on the countries and regions Anthropic currently supports\"; the Usage Policy (Effective 2025-09-15) applies to anyone submitting inputs \"including via any authorized resellers or passthrough access\" and forbids facilitating \"API access to Claude to persons, entities, or users in violation of our Supported Regions Policy\", so end users must also be in supported regions. Consumer-facing chatbots \"must disclose to users that they are interacting with AI rather than a human ... at a minimum at the beginning of each chat session\"; high-risk domains (legal, health, finance, insurance, employment, and others) need a qualified professional's review and disclosure."
+commercial_terms = "Raw resale prohibited: D.4 \"Customer may not and must not attempt to (a) access the Services to build a competing product or service, including to train competing AI models or resell the Services except as expressly approved by Anthropic\". Credits: Supplemental Credit Terms (Effective 2024-03-04) \"Customer may not transfer or sell Credits\"; usage credits expire one calendar year after issue, are non-refundable and \"have no cash value\". So the platform sells its own credit instrument, never Anthropic credits. Prices (2026-09-28, USD per 1M tokens): Claude Fable 5.1 $10 in / $50 out, 5-minute cache write $12.50, 1-hour write $20, cache read $0.25 (0.025x), batch $5 / $25; Opus 5.5 $4 / $20, cache read $0.20 (0.05x), fast mode $8 / $40; Sonnet 5 $2 / $10 (introductory price made standard), cache read $0.20, batch $1 / $5; Haiku 4.5 $1 / $5, cache read $0.10, batch $0.50 / $2.50. Batch API: 50% off both input and output, most batches under 1 hour, expire at 24 hours, stacks with caching. Long context: Claude 4.6 and later \"include the full 1M token context window at standard pricing\". Claude 4.7 and later tokenizer \"produces approximately 30% more tokens for the same text\". Price changes effective 30 days after posting (H.1). Fees exclude taxes; billing address decides the tax jurisdiction and a VAT ID can be entered; Korean VAT treatment for a 사업자 not verified on Anthropic pages."
+integration = "api"
+credentials = ["ANTHROPIC_API_KEY"]
+permissions = "Messages API, Message Batches, prompt caching, inference_geo, workspaces with per-key spend limits. Anthropic runs real-time safeguards on inputs and outputs; the customer must warn, throttle or suspend violating end users (help center) and keep keys server-side (\"Never share your API key\")."
+rate_limits = "Usage tiers (Start, Build, Scale) by spend; prepaid credits by default, monthly invoicing through Sales; billed only for successful calls; credits expire after one year."
+supported_operations = ["chat and agentic completions on Fable 5.1, Opus 5.5, Opus 5, Sonnet 5, Haiku 4.5", "prompt caching (5-minute and 1-hour TTL)", "Message Batches at 50%", "US-only inference at 1.1x", "web search $10 per 1,000 searches"]
+manual_dependency = "Console organization with a Korean billing address and VAT ID, prepaid credits (USD, card); the platform's own terms must carry the AI disclosure, the supported-regions rule for end users and the high-risk restrictions; written approval from Anthropic before any offering that is marketed as Claude access rather than the platform's own product."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.anthropic.com/legal/commercial-terms", evidence = "verified", checked = "2026-09-28", note = "Commercial Terms of Service, Effective 2025-06-17: A.1 own customers and end users, D.2 Users must comply, D.4 no resale except as expressly approved, H.1 30-day price notice, M.8 export" },
+  { url = "https://www.anthropic.com/legal/aup", evidence = "verified", checked = "2026-09-28", note = "Usage Policy, Effective 2025-09-15: passthrough access covered, AI disclosure for consumer-facing chatbots, high-risk requirements, supported regions" },
+  { url = "https://www.anthropic.com/supported-countries", evidence = "verified", checked = "2026-09-28", note = "South Korea listed for commercial API access" },
+  { url = "https://www.anthropic.com/legal/credit-terms", evidence = "verified", checked = "2026-09-28", note = "Supplemental Credit Terms, Effective 2024-03-04: no transfer or sale of Credits, one-year expiry, non-refundable" },
+  { url = "https://platform.claude.com/docs/en/docs/about-claude/pricing", evidence = "verified", checked = "2026-09-28", note = "Model prices, caching multipliers, batch 50%, 1M context at standard pricing, US-only 1.1x, regional endpoints +10% on Bedrock and Google Cloud" },
+  { url = "https://platform.claude.com/docs/en/manage-claude/data-residency", evidence = "verified", checked = "2026-09-28", note = "inference_geo global or us only; workspace geo us only" },
+  { url = "https://platform.claude.com/docs/en/docs/build-with-claude/batch-processing", evidence = "verified", checked = "2026-09-28", note = "Batch limits, 24-hour expiry, stacking with caching" },
+  { url = "https://www.anthropic.com/legal/service-specific-terms", evidence = "verified", checked = "2026-09-28", note = "Effective 2026-08-31: Marketplace Platforms means cloud marketplaces, not model routers" },
+  { url = "https://support.claude.com/en/articles/9199617-api-safeguards-tools", evidence = "verified", checked = "2026-09-28", note = "Customer-side safeguards: sign-up, warn, throttle, suspend, hashed user IDs" },
+  { url = "https://support.claude.com/en/articles/8977456-how-do-i-pay-for-my-claude-api-usage", evidence = "verified", checked = "2026-09-28", note = "2026-08-19: prepaid credits by default, invoicing via Sales, one-year expiry" },
+  { url = "https://support.claude.com/en/articles/9889428-add-or-update-your-claude-console-organization-s-tax-or-vat-id", evidence = "verified", checked = "2026-09-28", note = "2026-03-16: VAT ID field by location; Korea not mentioned" },
+]
+
+[[integrations]]
+id = "openai_api"
+name = "OpenAI API Platform (first-party)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "API business data not used for training by default (OpenAI data controls page; not re-quoted here)"
+data_residency = "Project regions: United States and Europe with regional processing; South Korea (kr.api.openai.com), Japan, Singapore, Australia, UK with regional storage only, inference outside the region; non-US regions need sales eligibility, abuse-monitoring approval and a Modified Retention amendment; data residency endpoints carry a 10% uplift for models released on or after 2026-03-05."
+pricing_url = "https://developers.openai.com/api/docs/pricing"
+eligibility = "OpenAI Services Agreement (Updated 2025-12-01, Effective 2026-01-01; openai.com returns 403 from this environment, text read from a web.archive.org snapshot of 2026-09-26) 2.2: \"This includes the right to use OpenAI's API to integrate the Services into Customer Applications and to make Customer Applications available to End Users.\" Customer Application means \"Customer's applications, products, or services that integrate with an OpenAI API\". South Korea is listed on the live supported-countries page, which warns that \"Accessing or offering access to our services outside of the countries and territories listed below may result in your account being blocked or suspended\"; 16.12: \"Customer and End Users may not access or offer access to the Services outside of the Supported Countries and Territories.\" 3.2 and 3.3: the customer is responsible for end users and \"will not, and will not permit End Users to\" violate the OpenAI Policies; Usage Policies (Effective 2025-10-29) ban impersonation and \"automation of high-stakes decisions in sensitive areas without human review\"; no explicit AI-disclosure sentence found in the text read."
+commercial_terms = "Raw resale prohibited: 3.1 \"Customer may not resell or lease access to its Account or any End User Account\" and \"will not share Account access credentials\"; 3.3(g) no \"buy, sell, or transfer API keys from, to, or with a third party\"; 3.3(i) no circumventing Usage Limits. Service Credit Terms (Updated 2026-01-01, archive 2026-09-03): \"We prohibit and do not recognize any purported transfers, sales, gifts, or trades of Service Credits\"; credits expire one year after purchase, non-refundable, minimum purchase $5 (help center). Prices (live developers.openai.com, 2026-09-28, USD per 1M tokens): gpt-6-astra $10 in / $1 cached / $12.50 cache write / $50 out, 2x input and 1.5x output above 272K input tokens; gpt-6-sol $2 / $0.20 / $2.50 / $10; gpt-6-luna $0.10 / $0.01 / $0.125 / $0.50; gpt-5 $1.25 / $0.125 / $10; gpt-5-mini $0.25 / $0.025 / $2. Batch and Flex at 50% of Standard; Batch completes within 24 hours; Flex is beta and returns uncharged 429s when capacity is short; Fast mode (renamed from priority processing 2026-07-30) at 2x. Prompt caching automatic from 1,024 tokens, GPT-5.6 and later write 1.25x and read 0.1x with a 30-minute TTL; earlier models no write charge, 24-hour retention option. Price changes effective 14 days after posting (6.6). Tax charged per the account name and address (6.3); a Tax ID can be entered; Korean VAT treatment for a 사업자 not verified."
+integration = "api"
+credentials = ["OPENAI_API_KEY"]
+permissions = "Responses and Chat Completions, Batch, Flex, Fast mode, prompt caching, per-project keys with expiry and IP allowlists; keys must stay on the platform's backend (\"Requests should always be routed through your own backend server\")."
+rate_limits = "Usage tiers by spend (trust tiers); prepaid credits applied to the monthly invoice, overage billed; credits expire after one year."
+supported_operations = ["completions on gpt-6-astra, gpt-6-sol, gpt-6-luna, gpt-5 family", "batch and flex at 50%", "prompt caching", "Korea storage-only data residency project after approval"]
+manual_dependency = "Organization with a Korean billing address and Tax ID, prepaid credits (card, USD); the platform's own terms must bind end users to the OpenAI Policies and supported countries; sales approval before any Korea-region project; written approval from OpenAI before any offering marketed as GPT access rather than the platform's own product."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://openai.com/policies/services-agreement/", evidence = "verified", checked = "2026-09-28", note = "Services Agreement Updated 2025-12-01, Effective 2026-01-01, read from the web.archive.org snapshot of 2026-09-26 because the live page returns 403 here: 2.2, 3.1, 3.2, 3.3, 6.3, 6.6, 16.11, 16.12" },
+  { url = "https://developers.openai.com/api/docs/supported-countries", evidence = "verified", checked = "2026-09-28", note = "Live: South Korea listed; offering access outside the list may lead to suspension" },
+  { url = "https://developers.openai.com/api/docs/pricing", evidence = "verified", checked = "2026-09-28", note = "Live: Standard, Batch, Flex and Fast mode prices; long-context multipliers; 10% data residency uplift" },
+  { url = "https://developers.openai.com/api/docs/guides/your-data", evidence = "verified", checked = "2026-09-28", note = "Live: data residency regions; South Korea storage only, processing No, MAM or ZDR required" },
+  { url = "https://developers.openai.com/api/docs/guides/prompt-caching", evidence = "verified", checked = "2026-09-28", note = "Live: caching rules and TTL" },
+  { url = "https://developers.openai.com/api/docs/guides/batch", evidence = "verified", checked = "2026-09-28", note = "Live: 50% discount, 24-hour window" },
+  { url = "https://developers.openai.com/api/docs/guides/flex-processing", evidence = "verified", checked = "2026-09-28", note = "Live: batch rates on synchronous best-effort calls" },
+  { url = "https://openai.com/policies/service-credit-terms/", evidence = "verified", checked = "2026-09-28", note = "Updated 2026-01-01, web.archive.org snapshot 2026-09-03 (live 403): no transfer or sale of credits, one-year expiry" },
+  { url = "https://openai.com/policies/usage-policies/", evidence = "verified", checked = "2026-09-28", note = "Effective 2025-10-29, web.archive.org snapshot 2026-09-27 (live 403): impersonation and high-stakes automation without human review prohibited" },
+  { url = "https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety", evidence = "verified", checked = "2026-09-28", note = "web.archive.org snapshot 2026-09-21 (live 403): never share keys, route through your own backend" },
+  { url = "https://help.openai.com/en/articles/8264644-what-is-prepaid-billing", evidence = "verified", checked = "2026-09-28", note = "web.archive.org snapshot 2026-04-26 (live 403): $5 minimum, one-year expiry" },
+  { url = "https://openai.com/api/pricing/", evidence = "unknown", checked = "2026-09-28", note = "The contractual Pricing Page returns 403 from this environment; developers.openai.com pricing used" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Hyperscaler model platforms: Google Gemini API, Vertex AI, Amazon Bedrock, Azure OpenAI.
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "google_gemini_api"
+name = "Google Gemini API via Google AI Studio (paid tier, single global endpoint)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "Paid Service (Cloud project with active billing): \"Google doesn't use your prompts ... or responses to improve our products\". Unpaid quota: used to improve products and human reviewers may read input and output; the EEA/UK/CH exception does not cover Korea, so never send customer traffic through free quota."
+data_residency = "No customer-selectable region and no residency option; the terms restrict where you and your users are (\"within an available region\"), not where inference runs. South Korea is on the available-regions list (2026-04-28)."
+pricing_url = "https://ai.google.dev/gemini-api/docs/pricing"
+eligibility = "Gemini API Additional Terms (effective 2026-03-23): \"Use of Google AI Studio and Gemini API is for developers building with Google AI models for professional or business purposes, not for consumer use\"; \"You may only access the Services (or make API Clients available to users) within an available region\"; 18+ and no API Client \"directed towards or is likely to be accessed by individuals under the age of 18\". Resale line sits in the Google APIs Terms of Service (2021-11-09): \"Sublicense an API for use by a third party. Consequently, you will not create an API Client that functions substantially the same as the APIs and offer it for use by third parties.\" A router that exposes a bare model-equivalent completions endpoint to third parties is that sentence; a product with its own function (intent compiler, cache, judge, cost accounting) serving its own users is the permitted API Client."
+commercial_terms = "Single global price list (page dated 2026-09-24), USD per 1M tokens: Gemini 2.5 Pro $1.25 in / $10 out (<=200k), $2.50 / $15 (>200k), cached $0.125, storage $4.50 per 1M token-hours; Gemini 2.5 Flash $0.30 / $2.50; 2.5 Flash-Lite $0.10 / $0.40; Gemini 3.5 Flash $1.50 / $9.00; 3.5 Flash-Lite $0.30 / $2.50; 3.1 Pro Preview $2 / $12 (<=200k) and $4 / $18 (>200k); 3.8/3.7/3.6 Flash $0.75 / $3.75 through 2026-12-31 then $1.50 / $7.50. Batch API 50% of standard, 24-hour target. Implicit caching on by default for 2.5 and newer (minimum 2,048 or 4,096 tokens); cached reads 10% of input. Prepaid then pay-as-you-go billing."
+integration = "api"
+credentials = ["GEMINI_API_KEY"]
+permissions = "Generate content, batch, context caching, embeddings. Grounding with Google Search results may not be cached, resold or trained on and must be shown only to the end user who prompted."
+rate_limits = "Tiered by billing history; not itemised here."
+supported_operations = ["Gemini completions from a billed Cloud project", "batch at 50%", "implicit and explicit caching"]
+manual_dependency = "Google Cloud project with billing enabled before any customer request; platform terms restricted to business users 18+; no Grounding with Google Search unless the platform's own app displays the results."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://ai.google.dev/gemini-api/terms", evidence = "verified", checked = "2026-09-28", note = "Additional Terms effective 2026-03-23: API Clients for users, B2B, 18+, paid vs unpaid data use" },
+  { url = "https://developers.google.com/terms", evidence = "verified", checked = "2026-09-28", note = "Google APIs ToS 2021-11-09: no sublicensing, no substantially-same API Client for third parties" },
+  { url = "https://ai.google.dev/gemini-api/docs/available-regions", evidence = "verified", checked = "2026-09-28", note = "South Korea listed (2026-04-28)" },
+  { url = "https://ai.google.dev/gemini-api/docs/pricing", evidence = "verified", checked = "2026-09-28", note = "Prices 2026-09-24; free tier 'Used to improve our products: Yes'" },
+  { url = "https://ai.google.dev/gemini-api/docs/batch-mode", evidence = "verified", checked = "2026-09-28", note = "Batch 50%, 24-hour target (2026-09-17)" },
+  { url = "https://ai.google.dev/gemini-api/docs/caching", evidence = "verified", checked = "2026-09-28", note = "Implicit caching default on 2.5+; default explicit TTL not on page" },
+]
+
+[[integrations]]
+id = "google_vertex_ai"
+name = "Google Cloud Vertex AI (Gemini and Claude; global, multi-region and Seoul endpoints)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "no: Service Specific Terms 18 \"Google will not use Customer Data to train or fine-tune any AI/ML models without Customer's prior permission or instruction\" (2026-09-24)"
+data_residency = "Global endpoint \"doesn't support data residency requirements\" and may process anywhere; multi-region us and eu keep ML processing in that jurisdiction; Seoul (asia-northeast3) is a regional endpoint for Gemini models with a South Korea column in the ML-processing table; the partner-model (Claude) table has no Seoul column, so Claude in Seoul is not verified. Data at rest stays in the chosen location whatever endpoint is called."
+pricing_url = "https://cloud.google.com/vertex-ai/generative-ai/pricing"
+eligibility = "Google Cloud Terms of Service (2026-09-02) 1.1: Customer \"may use the Services, and integrate the GCP Services ... into any Customer Application that has material value independent of the Services\"; End Users \"may include ... other authorized third parties\". 3.3: Customer will not \"(c) sell, resell, sublicense, transfer, or distribute any or all of the Services\" nor use them \"in a manner intended to avoid incurring Fees\". Resale only under a Reseller Agreement in the Partner Advantage channel (marketplace reseller terms 2025-11-13; Partner Advantage pages not reachable). Service Specific Terms 17 no competing product, 20d no under-18 audiences, 20e no clinical use."
+commercial_terms = "Non-global endpoints carry a premium: \"For non-global endpoints, pricing will go into effect for the Generally available Gemini 3 and later families of all Google models starting on July 1, 2026\". Gemini 3.5 Flash global $1.50 in / $9.00 out, non-global $1.65 / $9.90; 3.5 Flash-Lite $0.30 / $2.50 vs $0.33 / $2.75; Gemini 2.5 Pro $1.25 / $10 (<=200k), 2.5 Flash $0.30 / $2.50 (no split yet). Claude Sonnet 4.5 global $3.00 / $15.00, batch $1.50 / $7.50, 5m cache write $3.75, 1h $6.00, cache hit $0.30; regional $3.30 / $16.50 (Anthropic: \"Regional and multi-region endpoints include a 10% pricing premium over global endpoints\", Sonnet 4.5 and later). Claude Haiku 4.5 $1.00 / $5.00 global, $1.10 / $5.50 regional. Batch 50%; explicit cache storage $4.50 (Pro) or $1.00 (Flash) per 1M token-hours; all tokens at long-context rates above 200K. Google's own advice: \"we recommend routing your primary traffic to the global endpoint\"."
+integration = "api"
+credentials = ["GOOGLE_APPLICATION_CREDENTIALS"]
+permissions = "Vertex AI API on a Cloud project; service account with aiplatform.user; Claude models enabled per model card."
+rate_limits = "Per-project quotas by region and model; global endpoint has separate quotas."
+supported_operations = ["Gemini and Claude completions on the global endpoint", "Seoul regional endpoint for Gemini when a customer needs ML processing in Korea", "batch at 50%", "prompt caching"]
+manual_dependency = "Google Cloud billing account in the platform's name; Claude model cards enabled; a Seoul-resident route exists for Gemini only and costs 10% more, so residency must be a customer-selected option, not the default."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://cloud.google.com/terms", evidence = "verified", checked = "2026-09-28", note = "Google Cloud ToS 2026-09-02: 1.1 Customer Application, 3.3 restrictions" },
+  { url = "https://cloud.google.com/terms/service-terms", evidence = "verified", checked = "2026-09-28", note = "Service Specific Terms 2026-09-24: 14 resold customers, 16 data location, 17, 18, 20" },
+  { url = "https://cloud.google.com/terms/marketplace/resellers", evidence = "verified", checked = "2026-09-28", note = "Reseller Agreement and Partner Advantage programme (2025-11-13)" },
+  { url = "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/locations", evidence = "verified", checked = "2026-09-28", note = "Global, multi-region and Seoul endpoints (2026-09-25); per-cell Seoul model support inferred" },
+  { url = "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/data-residency", evidence = "verified", checked = "2026-09-28", note = "At-rest vs ML processing; no Seoul column for partner models (2026-09-25)" },
+  { url = "https://cloud.google.com/vertex-ai/generative-ai/pricing", evidence = "verified", checked = "2026-09-28", note = "Global vs non-global prices, Claude tables, batch, cache storage; page undated" },
+  { url = "https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai", evidence = "verified", checked = "2026-09-28", note = "10% regional premium; newer Claude models on global or us/eu only" },
+  { url = "https://cloud.google.com/blog/products/ai-machine-learning/global-endpoint-for-claude-models-generally-available-on-vertex-ai", evidence = "verified", checked = "2026-09-28", note = "2025-07-28: route primary traffic to the global endpoint" },
+  { url = "https://cloud.google.com/partners/partner-advantage", evidence = "unknown", checked = "2026-09-28", note = "404; reseller programme requirements not verified" },
+]
+
+[[integrations]]
+id = "aws_bedrock"
+name = "Amazon Bedrock (Claude via global cross-region inference from Seoul; Amazon Nova via APAC profile)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "no: Bedrock is not in Service Terms 50.3 (services whose content AWS may use to improve); 50.12.2 stores inputs and outputs up to 30 days solely for abuse detection"
+data_residency = "Seoul (ap-northeast-2) offers Claude Sonnet 4.5, Haiku 4.5, 4.6 and the 5 family only through the Global cross-region profile, which \"may be processed in other supported AWS commercial Regions\"; Amazon Nova in Seoul uses the APAC geographic profile (processing stays within APAC); no in-region Claude in Seoul. Data stays on the AWS network; CloudTrail records the processing region."
+pricing_url = "https://aws.amazon.com/bedrock/pricing/"
+eligibility = "AWS Customer Agreement (2026-08-14) 2.5: End Users are anyone who \"accesses or uses the Services under your account\" and you are responsible for them; 6.4: neither you nor any End User will \"(b) access or use the Services or AWS Content in a way intended to avoid incurring fees ... or (c) resell the Services or AWS Content\"; 2.4: keys \"are for your internal use only and you will not sell, transfer or sublicense them\". Resale needs the AWS Solution Provider Program through a Korean AWS distributor. Contracting party for Korea: Amazon Web Services Korea LLC, Seoul. Service Terms 50.4: the platform must give End Users \"legally adequate privacy notices\"."
+commercial_terms = "\"The price is calculated based on the Region from which you call an inference profile\" and Global saves \"approximately 10%\" over geographic profiles: Claude Sonnet 4.5 global $3.00 in / $15.00 out, batch $1.50 / $7.50, 5m cache write $3.75, 1h $6.00, cache read $0.30, identical when called from Seoul, N. Virginia or Tokyo; geo or in-region $3.30 / $16.50 (no Seoul row). Claude Haiku 4.5 $1.00 / $5.00 global. Amazon Nova Micro in Seoul $0.041 / $0.164 vs N. Virginia $0.035 / $0.14 (about 17% more). Batch 50% for selected models (no tool calling, no provisioned models); prompt caching on on-demand only, 5-minute or 1-hour TTL. AWS's own table: \"Choose Global for cost optimization\"."
+integration = "api"
+credentials = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"]
+permissions = "bedrock:InvokeModel and InvokeModelWithResponseStream on the inference profiles; model access enabled per model in the console."
+rate_limits = "Per-account tokens-per-minute and requests-per-minute quotas by model and region."
+supported_operations = ["Claude and Nova completions from ap-northeast-2 through inference profiles", "batch inference from Seoul as source region", "prompt caching with cross-region inference"]
+manual_dependency = "AWS account under the Korean entity; model access requests approved; privacy notice to end users naming AWS commercial regions worldwide as processing locations for Global profiles."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://aws.amazon.com/agreement/", evidence = "verified", checked = "2026-09-28", note = "AWS Customer Agreement 2026-08-14: 2.4, 2.5, 6.4, Korea contracting party" },
+  { url = "https://aws.amazon.com/service-terms/", evidence = "verified", checked = "2026-09-28", note = "Service Terms 2026-09-15: 50.3, 50.4, 50.5, 50.12" },
+  { url = "https://aws.amazon.com/partners/programs/solution-provider/", evidence = "verified", checked = "2026-09-28", note = "Resale only through the Solution Provider Program via a distributor" },
+  { url = "https://docs.aws.amazon.com/bedrock/latest/userguide/models-region-compatibility.html", evidence = "verified", checked = "2026-09-28", note = "Seoul: Claude Global only; Nova APAC geo" },
+  { url = "https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html", evidence = "verified", checked = "2026-09-28", note = "Price by source region; Global about 10% savings; residency trade-off" },
+  { url = "https://docs.aws.amazon.com/bedrock/latest/userguide/global-cross-region-inference.html", evidence = "verified", checked = "2026-09-28", note = "Global profile scope and compliance caveat" },
+  { url = "https://aws.amazon.com/bedrock/pricing/", evidence = "verified", checked = "2026-09-28", note = "Prices read from the page's own AWS price feed JSON; HTML shows placeholders" },
+  { url = "https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html", evidence = "verified", checked = "2026-09-28", note = "Cache billing, TTLs, minimums; on-demand only" },
+  { url = "https://platform.claude.com/docs/en/about-claude/pricing", evidence = "verified", checked = "2026-09-28", note = "10% regional premium on Bedrock and Vertex for Sonnet 4.5, Haiku 4.5, Opus 4.5 and later" },
+]
+
+[[integrations]]
+id = "azure_openai_foundry"
+name = "Microsoft Azure OpenAI / Foundry Models (Korea Central, Global Standard and APAC Data Zone)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "no: prompts and completions \"are NOT used to train any generative AI foundation models without your permission or instruction\" (data-privacy page 2026-05-18); abuse-monitoring samples stored in the resource's geography"
+data_residency = "Data at rest stays in the designated Azure geography for every deployment type; processing: Global \"may be processed in any Azure region\", Data Zone within US, EU or APAC, Standard within the customer geography. Korea Central offers Global Standard for the GPT-5.x, 4.1, 4o and o-series, APAC Data Zone Standard for gpt-5.2, 5.3-codex, 5.4, 5.4-mini and 5.6-sol only, and no regional Standard GPT deployment."
+pricing_url = "https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/"
+eligibility = "Product Terms \"Azure Customer Solution\" clause (reported from a 2025-03-12 mirror PDF; the official terms site is a JavaScript shell): \"Customer may permit third parties to access and use the Microsoft Azure Services solely in connection with the use of that Customer Solution\". Microsoft Online Subscription Agreement (verified): \"You may not rent, lease, lend, resell, transfer, or host the Product, or any portion thereof, to or for third parties except as expressly permitted\" and \"You may not resell or redistribute the Microsoft Azure Services\". Resale only as a Cloud Solution Provider indirect reseller (MAICPP membership, PLA, distributor). AI Code of Conduct v4.0 (2026-05-01): detect fraudulent account creation; no letting end users create their own chatbots without oversight. Conditional because the governing Product Terms text could not be read from Microsoft's own site."
+commercial_terms = "Azure Retail Prices API (checked 2026-09-28): Global Standard is region-invariant, GPT-5 $1.25 in / $0.125 cached / $10 out in Korea Central and East US 2 alike, batch $0.625 / $5; GPT-5 mini $0.25 / $2; GPT-5 nano $0.05 / $0.40; gpt-4.1 $2.00 / $0.50 cached / $8.00. Data Zone is 10% above Global in the US and EU (GPT-5 $1.375 / $11) but 20% above in Korea Central's APAC zone (GPT-5.1 $1.50 / $12 vs $1.25 / $10; batch $0.75 vs $0.625); Regional Standard 10% above Global where it exists. Global Batch 50%, 24-hour window, available in Korea Central for gpt-5, 5.1, 5.4, 4.1 and 4o families. Prompt caching from 1,024 tokens; no cache-write charge before the GPT-5.6 family. Microsoft: \"start with Global Standard. It launches first ... has the lowest price\"."
+integration = "api"
+credentials = ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"]
+permissions = "Foundry resource in Korea Central with model deployments; Limited Access registration only for modified content filtering or abuse monitoring."
+rate_limits = "Tokens-per-minute quota per deployment and subscription."
+supported_operations = ["GPT-5.x completions on Global Standard from Korea Central", "APAC Data Zone for the listed models at a 20% premium", "Global Batch at 50%"]
+manual_dependency = "Azure subscription under the Korean entity; read the current Product Terms in a browser and file the quoted Customer Solution clause; abuse-monitoring stays on unless approved otherwise."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://azure.microsoft.com/en-us/support/legal/subscription-agreement", evidence = "verified", checked = "2026-09-28", note = "MOSA (2019-03): no resale or hosting for third parties except as permitted" },
+  { url = "https://www.microsoft.com/licensing/terms/product/ForOnlineServices/all", evidence = "unknown", checked = "2026-09-28", note = "JavaScript shell; only fragments rendered, no effective date" },
+  { url = "https://www.aucotec.com/fileadmin/user_upload/aucotec/Microsoft_EULAs/EN/Visio/Microsoft_365_Licensing_Terms__12.03.2025__-_EN.pdf", evidence = "reported", checked = "2026-09-28", note = "Mirror of Product Terms 2025-03-12: Azure Customer Solution clause, AI services restrictions" },
+  { url = "https://learn.microsoft.com/en-us/legal/cognitive-services/openai/limited-access", evidence = "verified", checked = "2026-09-28", note = "All Azure customers eligible; registration only for Limited Access or modified filtering (updated 2026-06-05)" },
+  { url = "https://learn.microsoft.com/en-us/legal/ai-code-of-conduct", evidence = "verified", checked = "2026-09-28", note = "Code of Conduct v4.0 2026-05-01" },
+  { url = "https://learn.microsoft.com/en-us/partner-center/enroll/csp-overview", evidence = "verified", checked = "2026-09-28", note = "CSP indirect and direct-bill requirements (2026-05-15)" },
+  { url = "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/deployment-types", evidence = "verified", checked = "2026-09-28", note = "Deployment types and processing locations (2026-08-06)" },
+  { url = "https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure-region-availability", evidence = "verified", checked = "2026-09-28", note = "Korea Central availability by deployment type (2026-09-03)" },
+  { url = "https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy", evidence = "verified", checked = "2026-09-28", note = "No training on prompts; processing locations (2026-05-18)" },
+  { url = "https://prices.azure.com/api/retail/prices", evidence = "verified", checked = "2026-09-28", note = "Retail Prices API, serviceName Foundry Models: Global, Data Zone and Regional meters" },
+  { url = "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/batch", evidence = "verified", checked = "2026-09-28", note = "Global Batch 50%, 24h window (2026-05-13)" },
+  { url = "https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/prompt-caching", evidence = "verified", checked = "2026-09-28", note = "1,024-token minimum; cache writes charged from GPT-5.6 (2026-08-11)" },
+]
+
+
+[[integrations]]
+id = "groq_cloud"
+name = "Groq (GroqCloud API, open-weight models on LPU hardware)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "no (Services Agreement §4.2)"
+data_residency = "US, Canada, Saudi Arabia, Finland data centres; EU endpoint api.eu.groq.com needs sales enablement (reported); DPA §8.1 allows processing in the United States and other countries. No Korea region."
+pricing_url = "https://console.groq.com/docs/models"
+eligibility = "Self-serve account with a card; Free and Developer tiers; no minimum spend. Services Agreement (Last Modified 2026-06-22) §3.1 grants the right to \"integrate the Cloud Services and AI Model Services into your Customer Application and to make the Cloud Services and AI Model Services available to End Users\", where Customer Application means \"Customer's applications, products, or services in which Customer may integrate the Cloud Services\". No customer-location restriction beyond export-control laws (§6.3(d)(iv)); a Korean 사업자 qualifies."
+commercial_terms = "Raw resale is prohibited: §3.2 \"Customer may not resell or lease access to its Account\"; §6.3(c) no \"sell, resell, sublicense, transfer, or distribute any of the Cloud Services except as expressly approved by Groq\"; §18 describes Groq-authorized resellers, so reselling access needs Groq's approval. Prices (console docs/models, 2026-09-28): gpt-oss-120b $0.15 in / $0.60 out per 1M tokens, gpt-oss-20b $0.075 / $0.30, Qwen 3.8-27B (preview) $0.80 / $4.00; Llama 3.3 70B and 3.1 8B are \"Contact Sales\" (third parties report $0.59/$0.79 and $0.05/$0.08). Batch and Flex processing on the Developer plan; batch at half the on-demand rate is reported, not read on Groq's page. Service credits expire one year after purchase, are non-transferable and \"All sales ... are final\" (Service Credit Terms, 2025-10-15)."
+integration = "api"
+credentials = ["GROQ_API_KEY"]
+permissions = "OpenAI-compatible chat completions, batch, flex; one key per project. Groq does not use Inputs or Outputs for training (§4.2)."
+rate_limits = "Free plan gpt-oss-120b: 30 RPM, 8K TPM, 1K RPD, 200K TPD; Developer plan higher (console docs/rate-limits). Billed once usage reaches $0.50, then at $1, $10, $100, $500, $1,000 thresholds, then monthly in arrears."
+supported_operations = ["chat completions on gpt-oss-120b, gpt-oss-20b, Qwen 3.8-27B", "batch processing (Developer plan)", "flex processing (Developer plan)"]
+manual_dependency = "Account signup, card, Developer plan; screen end users against sanctions lists (§6.3(d)); write the router's own terms so end users are the platform's customers, not Groq's."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://console.groq.com/docs/legal/services-agreement", evidence = "verified", checked = "2026-09-28", note = "Services Agreement, Last Modified 2026-06-22: §3.1 Customer Application and End Users, §3.2, §6.3(c), §4.2, §18" },
+  { url = "https://console.groq.com/docs/models", evidence = "verified", checked = "2026-09-28", note = "Per-token prices; Llama models Contact Sales" },
+  { url = "https://console.groq.com/docs/rate-limits", evidence = "verified", checked = "2026-09-28", note = "Free plan limits" },
+  { url = "https://console.groq.com/docs/billing-faqs", evidence = "verified", checked = "2026-09-28", note = "Billing thresholds, no minimum spend" },
+  { url = "https://console.groq.com/docs/legal/service-credit-terms", evidence = "verified", checked = "2026-09-28", note = "Credits expire after 1 year, non-transferable, sales final (2025-10-15)" },
+  { url = "https://console.groq.com/docs/legal/customer-data-processing-addendum", evidence = "verified", checked = "2026-09-28", note = "DPA 2025-10-15 §8.1 transfers to the US and other countries" },
+  { url = "https://groq.com/newsroom/groq-launches-european-data-center-footprint-in-helsinki-finland", evidence = "verified", checked = "2026-09-28", note = "2025-07-06: US, Canada, Saudi Arabia, Helsinki" },
+  { url = "https://www.cloudzero.com/blog/groq-pricing/", evidence = "reported", checked = "2026-09-28", note = "Llama prices and batch half-rate, third party (2026-09-04)" },
+  { url = "https://groq.com/pricing", evidence = "unknown", checked = "2026-09-28", note = "Redirects to the homepage; prices read from console docs instead" },
+]
+
+[[integrations]]
+id = "cerebras_inference"
+name = "Cerebras Inference API (api.cerebras.ai)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "no (Terms: no right to use Service Content for training or fine-tuning)"
+data_residency = "not verified (no region statement found)"
+pricing_url = "https://www.cerebras.ai/pricing"
+eligibility = "Website Terms of Use (effective 2024-08-27, covers api.cerebras.ai) grant a license to \"(b) distribute or allow access to your integration of the APIs within your applications to end users of such applications\". Only sanctions screening (BIS/OFAC) restricts customers; Korea is fine."
+commercial_terms = "Prohibited: \"Copy, rent, lease, sell, loan, transfer, assign, license or purport to sublicense, resell, distribute ... any part of the Service\" and \"Buy, sell or transfer API keys without our prior written consent\". Public rate card has exactly two models (2026-09-28): gpt-oss-120b $0.35 / $0.75 and Qwen 3.8-27B $0.99 / $1.49 per 1M tokens; larger models are dedicated-endpoint custom pricing (reported). Developer tier from $10; free trial $5 credits expire after 30 days. Batch or cached-input pricing not verified."
+integration = "api"
+credentials = ["CEREBRAS_API_KEY"]
+permissions = "OpenAI-compatible chat completions on the two public models."
+rate_limits = "Pay-as-you-go 1,000 RPM, 1M uncached TPM, 3M total TPM, no daily caps; free tier gpt-oss-120b 5 RPM, 30K TPM, 1M TPD (inference-docs rate-limits page)."
+supported_operations = ["chat completions on gpt-oss-120b and Qwen 3.8-27B"]
+manual_dependency = "Account, card, $10 minimum; only two models, so it is a speed tier for easy requests, not a general supplier."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.cerebras.ai/terms-of-service", evidence = "verified", checked = "2026-09-28", note = "Website Terms of Use effective 2024-08-27: API grant (b) end users; resale and API-key sale prohibited" },
+  { url = "https://www.cerebras.ai/pricing", evidence = "verified", checked = "2026-09-28", note = "Two pay-per-token models; prices read from page HTML (JS page)" },
+  { url = "https://inference-docs.cerebras.ai/models/overview", evidence = "verified", checked = "2026-09-28", note = "Model list" },
+  { url = "https://inference-docs.cerebras.ai/support/rate-limits", evidence = "verified", checked = "2026-09-28", note = "Free trial credits expire after 30 days; PAYG limits" },
+]
+
+[[integrations]]
+id = "mistral_la_plateforme"
+name = "Mistral AI La Plateforme (api.mistral.ai, EU and US regional endpoints)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "no on paid tier by default (§4.2); the free Experiment tier is opt-in-by-default for training (reported)"
+data_residency = "Default api.mistral.ai carries no location commitment; api.eu.mistral.ai and api.us.mistral.ai regional inference at 1.1x list price; control-plane data not regionalised. Governing law France (DPA 2026-07-27)."
+pricing_url = "https://mistral.ai/pricing/api"
+eligibility = "Commercial Terms of Service (effective 2026-09-25) define \"Customer Offering\" as \"Customer's own products and services that it makes available to third parties which involve use of the Mistral AI Products\" and \"End User\" as anyone who accesses the products \"in connection with a Customer Offering\"; the licence (§2.1) is \"non-sublicensable (except to its End Users)\". Sanctions clause §14.13 lists Cuba, Iran, North Korea, Syria, Crimea, Donetsk, Luhansk; South Korea is not restricted."
+commercial_terms = "Additional Product Terms (2026-09-25) §2: \"End User Accounts may not be shared, sold, licensed, or otherwise made available outside of Customer's entity or organization.\" Prices (2026-09-28): Mistral Medium 3.5 $1.50 / $7.50, Mistral Large 3 $0.50 / $1.50, Mistral Small 4 $0.15 / $0.60, Ministral 3 (3B) $0.10 / $0.10 per 1M tokens; batch \"at half price\"; cached input -90%; regional inference +10%. Zero data retention on paid plans on request. Prepaid minimum and credit expiry not verified."
+integration = "api"
+credentials = ["MISTRAL_API_KEY"]
+permissions = "Chat completions, batch, regional endpoints; ZDR granted on request after review (paid only)."
+rate_limits = "Numeric limits not published; shown per workspace in the admin panel (docs tier page)."
+supported_operations = ["chat completions on Medium 3.5, Large 3, Small 4, Ministral 3, Codestral", "batch at half price", "EU or US regional inference at 1.1x"]
+manual_dependency = "Account and payment method; request ZDR; choose regional endpoint per customer residency requirement."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://legal.mistral.ai/terms/commercial-terms-of-service", evidence = "verified", checked = "2026-09-28", note = "Commercial ToS effective 2026-09-25: §1.4 Customer Offering and End User, §2.1 licence, §4.2 training, §14.13 sanctions" },
+  { url = "https://legal.mistral.ai/terms/additional-terms", evidence = "verified", checked = "2026-09-28", note = "Additional Product Terms 2026-09-25 §2: accounts may not be sold" },
+  { url = "https://mistral.ai/pricing/api", evidence = "verified", checked = "2026-09-28", note = "Per-token prices, batch half price, cache -90%, regional +10%" },
+  { url = "https://docs.mistral.ai/inference/regional-inference", evidence = "verified", checked = "2026-09-28", note = "EU and US endpoints at 1.1x; default endpoint has no location commitment" },
+  { url = "https://docs.mistral.ai/admin/monitor-comply/zero-data-retention", evidence = "verified", checked = "2026-09-28", note = "ZDR on request, paid plans" },
+  { url = "https://legal.mistral.ai/terms/data-processing-addendum", evidence = "verified", checked = "2026-09-28", note = "DPA effective 2026-07-27, governing law France" },
+]
+
+[[integrations]]
+id = "together_ai"
+name = "Together AI serverless inference"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "not_prohibited"
+resale_prohibited = true
+training_on_inputs = "no without opt-in (Privacy Policy 2025-12-17); Zero Data Retention selectable (ToS §3.2)"
+data_residency = "Serverless region not selectable; EU dedicated endpoints only on Scale and Enterprise plans. No Korea region."
+pricing_url = "https://www.together.ai/pricing"
+eligibility = "Terms of Service (updated 2026-05-19) grant \"a non-exclusive right to access and use the Services\" including APIs; no clause names end users or customer applications (not verified either way). §4(d) forbids to \"transfer, distribute, resell, lease, license, or assign the Services or otherwise offer the Services on a standalone basis\", so a product with its own routing, caching and quality layer is defensible and a bare pass-through endpoint is not. §4(c) forbids use \"to develop a product or service that is competitive with the Company's products or services or engage in competitive analysis or benchmarking\": a router that continuously benchmarks Together against other hosts must read this clause with counsel. No customer-location restriction beyond export law."
+commercial_terms = "Prices (2026-09-28, per 1M tokens): Kimi K3 $3.00 / $15.00, GLM-5.3 $1.40 ($0.26 cached) / $4.40, DeepSeek V4 Pro 0813 $1.32 ($0.13 cached) / $3.96, DeepSeek V4.1 Flash $0.30 / $1.20, Llama 3.3 70B $1.04 / $1.04, gpt-oss-120B $0.15 / $0.60, Qwen3.8 Flash $0.09 / $0.28. Batch \"up to 50% off serverless rates\" on selected models, 24-hour window. Minimum $5 credit purchase; prepaid credits do not expire; API suspended at zero balance."
+integration = "api"
+credentials = ["TOGETHER_API_KEY"]
+permissions = "OpenAI-compatible chat completions, batch, dedicated endpoints; ZDR toggle in account settings."
+rate_limits = "Dynamic limits that adjust with usage; no fixed per-model limits published."
+supported_operations = ["chat completions on the listed open-weight models", "batch inference (selected models, 50% off)", "dedicated GPU endpoints ($3.99 per H100 hour)"]
+manual_dependency = "Account, $5 credit, ZDR set to No storage; a written confirmation from Together that a routed end-user product is not \"standalone\" resale and that provider benchmarking is acceptable would move this to go."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.together.ai/terms-of-service", evidence = "verified", checked = "2026-09-28", note = "ToS updated 2026-05-19: §1 grant, §3.2 ZDR, §4(c) benchmarking, §4(d) standalone resale" },
+  { url = "https://www.together.ai/privacy", evidence = "verified", checked = "2026-09-28", note = "Privacy Policy 2025-12-17: no training without opt-in" },
+  { url = "https://www.together.ai/pricing", evidence = "verified", checked = "2026-09-28", note = "Per-token and cached prices" },
+  { url = "https://docs.together.ai/docs/batch-inference", evidence = "verified", checked = "2026-09-28", note = "Batch up to 50% off, selected models" },
+  { url = "https://docs.together.ai/docs/billing-credits", evidence = "verified", checked = "2026-09-28", note = "$5 minimum, credits do not expire" },
+  { url = "https://docs.together.ai/docs/rate-limits", evidence = "verified", checked = "2026-09-28", note = "Dynamic rate limits" },
+  { url = "https://support.together.ai/articles/8079447813-eu-data-centers-and-dedicated-model-deployment", evidence = "verified", checked = "2026-09-28", note = "EU dedicated endpoints on Scale and Enterprise only" },
+]
+
+[[integrations]]
+id = "fireworks_ai"
+name = "Fireworks AI serverless inference"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "unclear"
+resale_prohibited = true
+training_on_inputs = "no (ToS §3.6 Zero Data Retention; docs: no logging of prompts for open models without opt-in)"
+data_residency = "Multi-regions GLOBAL, US, EUROPE, APAC and single regions incl. AP_TOKYO_1; new accounts get GLOBAL quota only; US-only serverless models priced at 1.5x from 2026-09-01. No Korea region."
+pricing_url = "https://docs.fireworks.ai/serverless/pricing"
+eligibility = "Terms of Service (Last Updated 2026-07-10, PDF) §2.1 grant use \"solely for your personal use or internal business purposes\"; §2.2(d) no \"buy, sell or transfer API keys without our prior written consent\"; §2.2(e) no \"sublicense, resell, distribute\" any part of the Service. No clause grants serving third-party end users, so a paid router for outside customers is not covered by the self-serve terms; written consent or an enterprise agreement is the route. §18 export warranty covers \"no person to whom you make the Service available\", so end users must be screened too. Korea is not restricted."
+commercial_terms = "Prices (Standard tier, 2026-09-28, per 1M tokens): Kimi K3 $3.00 ($0.30 cached) / $15.00, Qwen 3.8 Max $2.00 ($0.25 cached) / $6.00, GLM 5.3 $1.40 / $4.40, DeepSeek V4.1 Flash $0.30 ($0.006 cached) / $1.20, gpt-oss-120B $0.15 / $0.60; Priority tier about 1.25x; \"Batch inference is billed at 50% of serverless pricing on both input and output.\" Spend tiers $50 to $50,000 per month unlocked by prepaid credits; credit expiry and minimum top-up not verified (billing docs page 404)."
+integration = "api"
+credentials = ["FIREWORKS_API_KEY"]
+permissions = "OpenAI-compatible chat completions, batch, regional deployments; ZDR by default."
+rate_limits = "10 RPM without a payment method; 6,000 RPM account-wide with card and credits; monthly spend tiers $50 / $500 / $5,000 / $50,000."
+supported_operations = ["chat completions on the listed models", "batch at 50%", "dedicated deployments"]
+manual_dependency = "Written consent from Fireworks (or an enterprise agreement) that the Service may be made available to the platform's paying end users; until then use for internal evaluation only."
+health = "unverified"
+last_verified = "2026-09-28"
+unknown_because = "Self-serve terms grant internal business use only; end-user distribution is neither granted nor defined."
+sources = [
+  { url = "https://fireworks.ai/terms-of-service", evidence = "verified", checked = "2026-09-28", note = "ToS PDF Last Updated 2026-07-10 (read via a text render of Fireworks' own PDF): §2.1, §2.2(d)(e), §3.6, §18" },
+  { url = "https://docs.fireworks.ai/serverless/pricing", evidence = "verified", checked = "2026-09-28", note = "Per-token prices, batch 50%, US-only 1.5x from 2026-09-01" },
+  { url = "https://docs.fireworks.ai/guides/quotas_usage/account-quotas", evidence = "verified", checked = "2026-09-28", note = "RPM and spend tiers" },
+  { url = "https://docs.fireworks.ai/deployments/regions", evidence = "verified", checked = "2026-09-28", note = "Regions incl. AP_TOKYO" },
+  { url = "https://docs.fireworks.ai/guides/security_compliance/data_handling", evidence = "verified", checked = "2026-09-28", note = "No logging of prompts for open models without opt-in" },
+  { url = "https://docs.fireworks.ai/accounts/billing", evidence = "unknown", checked = "2026-09-28", note = "404; credit expiry not verified" },
+]
+
+[[integrations]]
+id = "deepinfra"
+name = "DeepInfra serverless inference (also resells Claude and Gemini models)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "unclear"
+resale_prohibited = true
+training_on_inputs = "no for open models (ToS §7(b) Zero Data Retention); docs say data may be used when calling Google or Anthropic models through DeepInfra"
+data_residency = "Privacy Policy (2026-08-15): data may be processed \"outside of your jurisdiction, specifically in the United States\". No region selection, no Korea region."
+pricing_url = "https://deepinfra.com/pricing"
+eligibility = "Terms of Service (Last modified 2026-08-17) §11(a)(viii) forbid to \"resell, sublicense, rent, distribute, or otherwise make the Services available to any third party except as expressly permitted under this Agreement or the applicable Service Order\"; no end-user or customer-application grant was found, so a paid router serving outside customers needs a Service Order that permits it. §11(a)(i) forbids use \"in any manner that is competitive with any business of Provider\". §20(e) sanctions warranty extends to the customer's Users. Korea is not restricted."
+commercial_terms = "Cheapest large open-weight prices found (2026-09-28, per 1M tokens): DeepSeek-V3.2 $0.26 ($0.13 cached) / $0.38, DeepSeek-V4-Flash $0.09 / $0.18, DeepSeek-V4-Pro $1.30 / $2.60, Kimi-K2.6 $0.75 ($0.15 cached) / $3.50, Llama-3.3-70B-Instruct-Turbo $0.10 / $0.32, Llama-3.1-8B $0.02 / $0.04; Claude Sonnet 5 listed at $3.00 / $15.00 (above Anthropic's own $2 / $10). Service tiers Standard 1x, Priority 1.5x, Flex 0.8x. Card or prepay required; no minimums stated; batch discount, prepaid minimum and expiry not verified."
+integration = "api"
+credentials = ["DEEPINFRA_API_KEY"]
+permissions = "OpenAI-compatible chat completions; Flex and Priority tiers."
+rate_limits = "Default 200 concurrent requests per model per account."
+supported_operations = ["chat completions on DeepSeek, Kimi, Qwen, Llama models", "Flex tier at 0.8x for latency-tolerant traffic"]
+manual_dependency = "A Service Order or written permission covering third-party end users; otherwise internal evaluation only. Do not route Claude or Gemini traffic through DeepInfra: costlier than the first-party API and the no-training promise does not apply."
+health = "unverified"
+last_verified = "2026-09-28"
+unknown_because = "The resale clause covers making the Services available to any third party; the Service Order carve-out is the only route and none exists."
+sources = [
+  { url = "https://deepinfra.com/terms", evidence = "verified", checked = "2026-09-28", note = "ToS 2026-08-17: §7(a) licence, §7(b) ZDR, §11(a)(i)(viii), §20(e)" },
+  { url = "https://deepinfra.com/pricing", evidence = "verified", checked = "2026-09-28", note = "Per-token prices and tiers" },
+  { url = "https://docs.deepinfra.com/account/data-privacy", evidence = "verified", checked = "2026-09-28", note = "No training except Google or Anthropic models" },
+  { url = "https://docs.deepinfra.com/account/rate-limits", evidence = "verified", checked = "2026-09-28", note = "200 concurrent requests per model" },
+  { url = "https://deepinfra.com/privacy", evidence = "verified", checked = "2026-09-28", note = "Privacy Policy 2026-08-15: processing in the United States" },
+  { url = "https://docs.deepinfra.com/account/billing", evidence = "unknown", checked = "2026-09-28", note = "404; prepaid rules not verified" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Aggregators and gateways: comparables for the router, and possible BYOK infrastructure.
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "openrouter"
+name = "OpenRouter (unified API with its own upstream keys and prepaid credits)"
+roles = ["supplier", "research_source"]
+service = "ai_inference_aggregator"
+verdict = "no_go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "prohibited for resale"
+resale_prohibited = true
+training_on_inputs = "OpenRouter itself does zero logging by default; some upstream models may train (ToS §6.1)"
+data_residency = "Requests forwarded to upstream providers with the originating country (ToS §6.8); no residency control."
+pricing_url = "https://openrouter.ai/api/v1/models"
+eligibility = "Terms (Last Updated 2026-08-31) §7 prohibit access \"for purposes of reselling API access to Models or otherwise developing a competing service\". A paid router that sells routed access to end users is exactly that, so OpenRouter is not an upstream for this product. It remains useful as a public price feed (the models API listed 458 models with per-token prices on 2026-09-28) and as proof that Anthropic, OpenAI and Google models can be billed through an aggregator under some agreement; the terms of those upstream agreements are not public (not verified)."
+commercial_terms = "Credits: minimum $5 and maximum $25,000 per transaction; refund of unused credits only within 24 hours; may expire 365 days after purchase; non-transferable (§4.1, §4.2, §4.4). Fee 5.5% ($0.80 minimum) on card purchases, 5% crypto; \"We pass through the pricing of the underlying providers without any markup\"; BYOK free up to $25,000 monthly usage then 5%. Listed 2026-09-28: anthropic/claude-opus-5.5 $4 / $20, anthropic/claude-fable-5.1 $10 / $50, openai/gpt-6-luna $0.10 / $0.50, google/gemini-3.8-flash $0.75 / $3.75, deepseek/deepseek-v4.1-flash $0.035 / $0.29, meta-llama/llama-3.3-70b-instruct $0.10 / $0.32."
+integration = "api"
+credentials = []
+permissions = "Not to be used as an upstream for the paid router (§7). Public models endpoint readable without a key for price research."
+rate_limits = "Free tier 50 requests per day; 1,000 per day with $10 or more in credits."
+supported_operations = ["read public model list and prices (research only)"]
+manual_dependency = "None for the price feed. Using it as an upstream would need OpenRouter's written permission, which its terms do not offer."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://openrouter.ai/terms", evidence = "verified", checked = "2026-09-28", note = "Terms 2026-08-31: §4.1 credits, §4.2 expiry, §4.4 non-transferable, §6.8 country forwarded, §7 no reselling API access to Models" },
+  { url = "https://openrouter.ai/docs/faq", evidence = "verified", checked = "2026-09-28", note = "5.5% fee, no markup, BYOK allowance, zero logging by default" },
+  { url = "https://openrouter.ai/api/v1/models", evidence = "verified", checked = "2026-09-28", note = "458 models with prices incl. Anthropic, OpenAI, Google" },
+  { url = "https://openrouter.ai/docs/features/provider-routing", evidence = "verified", checked = "2026-09-28", note = "Default load balancing by inverse square of price; sort by price" },
+  { url = "https://openrouter.ai/docs/features/model-routing", evidence = "verified", checked = "2026-09-28", note = "Auto router: no additional fee, no savings figure" },
+]
+
+[[integrations]]
+id = "vercel_ai_gateway"
+name = "Vercel AI Gateway (unified endpoint; BYOK or Vercel credits)"
+roles = ["infrastructure"]
+service = "ai_inference_gateway"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "unclear"
+resale_prohibited = true
+training_on_inputs = "Vercel does not train on prompts; AI Gateway does not retain prompt or response content (FAQ 2026-09-13)"
+data_residency = "Not stated; upstream providers' own terms apply (AI Product Terms §8.1)."
+pricing_url = "https://vercel.com/docs/ai-gateway/pricing"
+eligibility = "BYOK mode: the platform's own provider keys pass through Vercel with \"no markup or fee from AI Gateway\"; the provider's terms still govern the traffic. Credits mode: Vercel bills Anthropic, OpenAI and Google models at list price with no markup (pricing page 2026-09-08), which proves an aggregator arrangement exists; AI Product Terms (effective 2026-03-31) §2 grant the licence \"without the right to sublicense\", so whether a paid third-party router may run on Vercel credits is not verified. Note: when BYOK requests fail, Vercel retries with its own credentials and charges the credits balance."
+commercial_terms = "No markup, no platform fee on tokens; card processing fees apply; credits expire one year after purchase, are non-refundable and non-transferable (§10.2); maximum $1,000 per purchase (CLI docs 2026-07-24); team-wide zero data retention $0.10 per 1,000 requests."
+integration = "api"
+credentials = ["VERCEL_AI_GATEWAY_API_KEY"]
+permissions = "OpenAI- and Anthropic-compatible base-URL swap; BYOK credentials stored per team."
+rate_limits = "Not published on the pages read."
+supported_operations = ["proxy the platform's own provider keys (BYOK)", "unified billing on Vercel credits (permission for resale not verified)"]
+manual_dependency = "Vercel account and payment method; a written answer from Vercel on running a paid third-party router on credits before using that mode."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://vercel.com/docs/ai-gateway/pricing", evidence = "verified", checked = "2026-09-28", note = "2026-09-08: no markup, BYOK free, fallback to system credentials" },
+  { url = "https://vercel.com/docs/ai-gateway/faq", evidence = "verified", checked = "2026-09-28", note = "2026-09-13: credits expire after one year; no training" },
+  { url = "https://vercel.com/legal/ai-product-terms", evidence = "verified", checked = "2026-09-28", note = "AI Product Terms effective 2026-03-31: §2 no sublicense, §8.1 third-party terms, §10.2 credits" },
+  { url = "https://vercel.com/docs/cli/buy", evidence = "verified", checked = "2026-09-28", note = "2026-07-24: $1,000 maximum per purchase" },
+]
+
+[[integrations]]
+id = "cloudflare_ai_gateway"
+name = "Cloudflare AI Gateway (proxy with caching, logging, rate limiting; optional Unified Billing)"
+roles = ["infrastructure"]
+service = "ai_inference_gateway"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "unclear"
+resale_prohibited = true
+training_on_inputs = "not stated for the gateway; upstream terms apply"
+data_residency = "Not stated on the pages read."
+pricing_url = "https://developers.cloudflare.com/ai-gateway/reference/pricing/"
+eligibility = "Default mode proxies the platform's own provider keys: \"AI Gateway's core features available today are offered for free\", with exact-match response caching (default TTL 5 minutes), logs, rate limits and retries. Unified Billing (updated 2026-09-23) lets one Cloudflare bill cover OpenAI, Anthropic, Google AI Studio, Vertex AI, xAI and Groq at provider prices \"passed through with no markup\" plus \"A 5% fee ... applied to all credits purchased\"; whether a paid third-party router may run on Unified Billing is not verified."
+commercial_terms = "Free gateway; 5% on Unified Billing credits; cache is exact match only (\"We plan on adding semantic search for caching in the future\"). Credit minimum and expiry not verified."
+integration = "api"
+credentials = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_AI_GATEWAY_TOKEN"]
+permissions = "Per-gateway proxy URLs for each provider; BYOK keys stored in Cloudflare or sent per request."
+rate_limits = "Configurable per gateway; Cloudflare-side limits not published on the pages read."
+supported_operations = ["proxy the platform's own provider keys with exact-match caching and logs", "unified billing across providers (permission for resale not verified)"]
+manual_dependency = "Cloudflare account; decide per provider whether the proxy is allowed to store keys; written answer from Cloudflare before using Unified Billing for a resale product."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://developers.cloudflare.com/ai-gateway/reference/pricing/", evidence = "verified", checked = "2026-09-28", note = "Core features free; 5% fee on Unified Billing credits; no markup" },
+  { url = "https://developers.cloudflare.com/ai-gateway/features/unified-billing/", evidence = "verified", checked = "2026-09-28", note = "2026-09-23: providers covered" },
+  { url = "https://developers.cloudflare.com/ai-gateway/features/caching/", evidence = "verified", checked = "2026-09-28", note = "2026-08-27: exact-match cache, 5-minute default TTL" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Regional providers: Korean models and Chinese-origin models with global endpoints.
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "upstage_solar"
+name = "Upstage Solar API (Korean provider, Seoul; USD pricing)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "not_prohibited"
+resale_prohibited = true
+training_on_inputs = "no on paid plans (Terms of Service Art. 22(5), effective 2026-09-21); free-tier data may be used for training (Art. 22(6))"
+data_residency = "Not verified as Korea: the privacy policy (effective 2026-09-15) discloses transfers to Amazon Web Services (US) for operation and storage, Microsoft Azure (US) and OpenAI, L.L.C. (US) for model inference; inference results stored 30 days."
+pricing_url = "https://www.upstage.ai/pricing"
+eligibility = "Korean company under Korean law (Art. 28(1)); a Korean 사업자 signs up on the console. Art. 9(3): \"회원은 회사의 사전 서면 동의 없이는 서비스의 사용 권한이나 계약상 지위를 타인에게 양도하거나 담보로 제공하거나 라이선스를 부여하는 등 일체의 처분 행위를 할 수 없습니다\"; Art. 23(1) limits use of the service and its outputs to the purpose of the service; no clause found that grants or forbids building end-user services on outputs (not verified either way). Training competing models on outputs prohibited (Art. 7(1))."
+commercial_terms = "Prices (USD per 1M tokens, exclusive of 10% VAT, 2026-09-28): Solar Pro 4 $0.30 in / $0.06 cached / $1.20 out; Solar Pro 3 $0.15 / $0.015 / $0.60; Solar Mini 4 $0.10 / $0.01 / $0.40 (50% off through 2026-10-22). Korean-domestic invoicing with 세금계산서 possible for a Korean 사업자 (inferred from the VAT note). Upstage shows 통신판매번호 2026-서울강남-02376 on its site and defines credits as usable \"for the purchase of the company's paid services\"."
+integration = "api"
+credentials = ["UPSTAGE_API_KEY"]
+permissions = "OpenAI-compatible chat completions, document parsing, embeddings; cached input pricing."
+rate_limits = "Not published on the pages read."
+supported_operations = ["Korean-language completions on Solar Pro 4, Pro 3, Mini 4", "document AI"]
+manual_dependency = "Console account; written confirmation that serving the platform's own end users is within Art. 23(1) before scaling; note the US sub-processors when promising Korean residency to customers."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.upstage.ai/pricing", evidence = "verified", checked = "2026-09-28", note = "Solar prices, VAT exclusive" },
+  { url = "https://www.upstage.ai/terms-of-service", evidence = "verified", checked = "2026-09-28", note = "Effective 2026-09-21: Art. 7(1), 9(3), 22(5)(6), 23(1), 28" },
+  { url = "https://www.upstage.ai/privacy-policy/updated-sep-21-2026", evidence = "verified", checked = "2026-09-28", note = "Overseas transfers to AWS, Azure, OpenAI; 30-day result retention" },
+  { url = "https://upstage.gitbook.io/terms-and-policies", evidence = "verified", checked = "2026-09-28", note = "Console terms 2024-02-20: credit definition" },
+  { url = "https://www.upstage.ai/", evidence = "verified", checked = "2026-09-28", note = "Footer: 사업자등록번호 830-88-01918, 통신판매번호 2026-서울강남-02376" },
+]
+
+[[integrations]]
+id = "naver_clova_studio"
+name = "Naver Cloud CLOVA Studio / HyperCLOVA X (Korea region only)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "unknown"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "unclear"
+resale_prohibited = true
+training_on_inputs = "not verified (no CLOVA Studio data clause located)"
+data_residency = "Korea: the spec page lists 리전 한국 only (updated 2026-09-17); private options Neurocloud and CLOVA Studio Exclusive."
+pricing_url = "https://www.ncloud.com/product/aiService/clovaStudio"
+eligibility = "Naver Cloud Platform account (Korean 사업자 or individual); CLOVA Studio bills per 1,000 tokens with separate input and output prices for HCX-007, HCX-005 and HCX-DASH-002. Naver Cloud shows 통신판매업신고번호 제2009-경기성남-0510호."
+commercial_terms = "KRW per-token prices could not be read: the price cells are client-side components that render as \"-\" without JavaScript, on ncloud.com and gov-ncloud.com alike. Press (2024-04-26) reported HCX-DASH at about one fifth of HCX-003. Data-use, training and resale clauses specific to CLOVA Studio were not located in the NCP terms index."
+integration = "api"
+credentials = ["NCP_CLOVASTUDIO_API_KEY"]
+permissions = "Chat completions, embeddings, summarization, router and RAG tools per the API guide (2026-09-17)."
+rate_limits = "Not verified."
+supported_operations = ["Korean-language completions on HyperCLOVA X, in Korea"]
+manual_dependency = "Read the KRW price table in a browser session; obtain the CLOVA Studio service terms on data use and resale; until then no routing decision can price it."
+health = "unverified"
+last_verified = "2026-09-28"
+unknown_because = "Per-token prices and the data-use and resale terms could not be read from this environment."
+sources = [
+  { url = "https://www.ncloud.com/product/aiService/clovaStudio", evidence = "verified", checked = "2026-09-28", note = "Billing per 1,000 tokens, split input and output; price values client-side only" },
+  { url = "https://guide.ncloud-docs.com/docs/clovastudio-spec", evidence = "verified", checked = "2026-09-28", note = "리전 한국; updated 2026-09-17" },
+  { url = "https://api.ncloud-docs.com/docs/ai-naver-clovastudio-summary", evidence = "verified", checked = "2026-09-28", note = "API guide 2026-09-17; no data clause" },
+  { url = "https://www.ncloud.com/", evidence = "verified", checked = "2026-09-28", note = "Footer 통신판매업신고번호 제2009-경기성남-0510호" },
+  { url = "https://www.digitaltoday.co.kr/news/articleView.html?idxno=515475", evidence = "reported", checked = "2026-09-28", note = "2024-04-26: HCX-DASH about one fifth of HCX-003" },
+  { url = "https://guide.ncloud-docs.com/docs/clovastudio-faq", evidence = "unknown", checked = "2026-09-28", note = "404" },
+]
+
+[[integrations]]
+id = "deepseek_api"
+name = "DeepSeek open platform API (Hangzhou DeepSeek AI, data stored in mainland China)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = false
+training_on_inputs = "opt-out right in the privacy policy (2026-02-10); default use for training not excluded"
+data_residency = "Privacy policy: \"we directly collect, process and store your Personal Data in People's Republic of China\". Terms governed by PRC law, courts at Hangzhou. Any prompt with a Korean data subject's personal information is a 국외 이전 under 개인정보 보호법 제28조의8; the PIPC ordered DeepSeek in April 2025 to stop transferring user prompts to Volcano Engine and found no legal basis for the transfer."
+pricing_url = "https://api-docs.deepseek.com/quick_start/pricing"
+eligibility = "Terms of Service (effective 2026-04-29): \"You can integrate the capabilities of the DeepSeek models into various downstream systems, applications, or functionalities ... providing services to both internal and external end users\"; outputs may be used for derivative products and even distillation. Resale is not addressed (not verified either way). Usable only for requests that carry no personal information, or after the platform's privacy policy names DeepSeek, the PRC, purpose and retention under 제28조의8 ①3 and the customer accepts that; not usable for public-sector or regulated Korean customers."
+commercial_terms = "Prices (USD per 1M tokens): deepseek-flash (V4.1-Flash) cache miss $0.15 to $0.30, cache hit $0.003 to $0.006, output $0.60 to $1.20; deepseek-v4-pro cache miss $0.66 to $1.32, cache hit $0.022 to $0.044, output $1.98 to $3.96. \"Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays\": a time-of-day price the provider itself publishes, so scheduling batchable work off-peak is sanctioned. 1M context, prepaid top-up (minimum not verified)."
+integration = "api"
+credentials = ["DEEPSEEK_API_KEY"]
+permissions = "OpenAI-compatible chat completions with automatic context caching."
+rate_limits = "Not published on the pages read."
+supported_operations = ["completions on deepseek-flash and deepseek-v4-pro for non-personal workloads", "off-peak half-price scheduling"]
+manual_dependency = "Personal-information classifier in front of the router; privacy-policy disclosure of DeepSeek as a PRC recipient; customer opt-in per tenant; otherwise route DeepSeek models through a US or Singapore host (DeepInfra, Together, Fireworks) instead."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://api-docs.deepseek.com/quick_start/pricing", evidence = "verified", checked = "2026-09-28", note = "Prices and off-peak rule" },
+  { url = "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html", evidence = "verified", checked = "2026-09-28", note = "Effective 2026-04-29: downstream end users allowed; PRC law" },
+  { url = "https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html", evidence = "verified", checked = "2026-09-28", note = "2026-02-10: data stored in the PRC; training opt-out" },
+  { url = "https://www.pipc.go.kr/eng/user/ltn/new/noticeDetail.do?bbsId=BBSMSTR_000000000001&nttId=2819", evidence = "verified", checked = "2026-09-28", note = "PIPC 2025-04-24: prompts transferred to Volcano Engine without a legal basis; corrective orders" },
+  { url = "https://zdnet.co.kr/view/?no=20250217170236", evidence = "reported", checked = "2026-09-28", note = "2025-02-17: app download suspension; API named as the same problem scope; self-hosted R1 excluded" },
+]
+
+[[integrations]]
+id = "alibaba_model_studio_intl"
+name = "Alibaba Cloud Model Studio international (Qwen; Singapore, US, Japan, Germany regions)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "unclear"
+resale_prohibited = true
+training_on_inputs = "no: \"Alibaba Cloud protects data privacy and will never use your data for model training\""
+data_residency = "\"Regions determine the access point and data storage location ... Request data is stored in that region\"; Singapore ap-southeast-1 (dashscope-intl endpoint), US Virginia, Japan Tokyo, Germany Frankfurt, Hong Kong, Beijing; API keys not interchangeable across regions. Still a cross-border transfer from Korea."
+pricing_url = "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+eligibility = "Alibaba Cloud International account. Model Studio-specific resale or end-user clause not located (not verified); the general Alibaba Cloud International terms were not read."
+commercial_terms = "Prices (USD per 1M tokens, page dated 2026-09-28): Qwen3.8-Max $2 in / $6 out; Qwen3.7-Max $2.5 / $7.5; Qwen3-Max tiered $1.2 to $3 / $6 to $15; Qwen-Plus $0.4 to $1.2 / $1.2 to $4.8; Qwen-Flash $0.05 to $0.25 / $0.4 to $2; Qwen-Turbo $0.05 / $0.2. Free quotas only in Singapore."
+integration = "api"
+credentials = ["DASHSCOPE_API_KEY"]
+permissions = "OpenAI-compatible endpoint per region."
+rate_limits = "Not published on the pages read."
+supported_operations = ["Qwen completions in Singapore, Tokyo, Virginia or Frankfurt"]
+manual_dependency = "Read the Alibaba Cloud International terms for resale and end-user language; pick a non-China region; disclose the recipient and country in the privacy policy."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.alibabacloud.com/help/en/model-studio/model-pricing", evidence = "verified", checked = "2026-09-28", note = "Prices, last updated 2026-09-28" },
+  { url = "https://www.alibabacloud.com/help/en/model-studio/regions", evidence = "verified", checked = "2026-09-28", note = "Regions and data storage location" },
+  { url = "https://help.aliyun.com/en/model-studio/what-is-model-studio", evidence = "verified", checked = "2026-09-28", note = "No training on customer data" },
+]
+
+[[integrations]]
+id = "moonshot_kimi"
+name = "Moonshot AI Kimi Open Platform (Singapore entity; Kimi K3)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "explicit"
+resale_prohibited = true
+training_on_inputs = "Terms (2026-07-30): \"We may use Content to provide, maintain, develop, support, and improve the Services\" unless an enterprise arrangement; ZDR page says enterprise customer data is not used for training by default and ZDR is available on request; texts are not fully consistent"
+data_residency = "Privacy policy (2025-04-30): \"We store the information we collect in secure servers located in Singapore\"; Moonshot AI PTE. LTD., Singapore law, SIAC arbitration."
+pricing_url = "https://platform.kimi.ai/docs/pricing/chat"
+eligibility = "Terms allow to \"integrate the Services into your own applications, products, or Services\" and \"offer those Customer Applications to End Users\"; prohibited: \"Copying, transferring, renting, lending, selling, or providing sub-licensing or re-licensing of the Services in whole or in part without authorization\"."
+commercial_terms = "Prices (USD per 1M tokens): kimi-k3 $3.00 in / $15.00 out, cached input $0.30, cache write $6.00 (5-minute or 1-hour TTL), 1M context; K2 series $0.19 to $1.90 in / $4.00 to $8.00 out. Prices exclude taxes."
+integration = "api"
+credentials = ["MOONSHOT_API_KEY"]
+permissions = "OpenAI-compatible chat completions with explicit context caching."
+rate_limits = "Not published on the pages read."
+supported_operations = ["completions on Kimi K3 and K2 models from Singapore"]
+manual_dependency = "Enterprise arrangement or ZDR before sending customer content, because the self-serve terms allow use of content to improve the service; privacy-policy disclosure of Singapore as the recipient country."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://platform.kimi.ai/docs/pricing/chat", evidence = "verified", checked = "2026-09-28", note = "Prices and cache pricing" },
+  { url = "https://platform.kimi.ai/docs/agreement/modeluse", evidence = "verified", checked = "2026-09-28", note = "Terms 2026-07-30: Customer Applications and End Users allowed, no sub-licensing, Singapore law" },
+  { url = "https://platform.kimi.ai/docs/agreement/userprivacy.md", evidence = "verified", checked = "2026-09-28", note = "Privacy 2025-04-30: servers in Singapore" },
+  { url = "https://platform.kimi.ai/docs/guide/zero-data-retention.md", evidence = "verified", checked = "2026-09-28", note = "ZDR on request for enterprise customers" },
+]
+
+[[integrations]]
+id = "zai_glm"
+name = "Z.ai (Zhipu international, Singapore entity; GLM models)"
+roles = ["supplier"]
+service = "ai_inference"
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+customer_app_allowed = "not_prohibited"
+resale_prohibited = true
+training_on_inputs = "no for the API unless explicitly agreed (Terms of Use 2026-04-14); API content \"processed in real-time ... and is not saved\" (privacy policy 2025-09-29)"
+data_residency = "JINGSHENG HENGXING TECHNOLOGY PTE. LTD., Singapore; services \"generally\" provided from Singapore; Singapore law, SIAC."
+pricing_url = "https://docs.z.ai/guides/overview/pricing"
+eligibility = "Terms of Use (2026-04-14) require downstream developers to \"establish agreements with ... End Users\" and prohibit \"exploitation of our intellectual property through use, lease, lending, copying, modification, linking, reposting, compilation, publication, or establishment of mirror sites\"; no explicit end-user grant sentence found (not verified either way)."
+commercial_terms = "Prices (USD per 1M tokens): GLM-5.3-Flash $0.15 in / $0.50 out; GLM-5.3-FlashX $0.37 / $1.25; GLM-5.3, 5.2, 5.1 $1.40 / $4.40; GLM-5 $1.00 / $3.20; GLM-4.7-FlashX $0.07 / $0.40; GLM-4.7-Flash and 4.5-Flash free. The same GLM-5.3 is $1.40 / $4.40 at Together, Fireworks and Mistral."
+integration = "api"
+credentials = ["ZAI_API_KEY"]
+permissions = "OpenAI-compatible chat completions."
+rate_limits = "Not published on the pages read."
+supported_operations = ["GLM completions from Singapore"]
+manual_dependency = "End-user agreement in the platform's own terms; privacy-policy disclosure of Singapore; confirm in writing that serving paying end users is not \"lease\" of the service."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://docs.z.ai/guides/overview/pricing", evidence = "verified", checked = "2026-09-28", note = "Prices in USD" },
+  { url = "https://docs.z.ai/legal-agreement/terms-of-use", evidence = "verified", checked = "2026-09-28", note = "2026-04-14: no training on API content unless agreed; end-user agreements required" },
+  { url = "https://docs.z.ai/legal-agreement/privacy-policy", evidence = "verified", checked = "2026-09-28", note = "2025-09-29: Singapore entity; API content not saved" },
+]
+
+# ---------------------------------------------------------------------------------------------
+# Payment collection for the router (task 13). Korean PG rates are before 10% VAT unless noted.
+# ---------------------------------------------------------------------------------------------
+
+[[integrations]]
+id = "toss_payments"
+name = "Toss Payments (Korean PG: domestic cards and wallets, overseas cards by extra contract, PayPal via Toss)"
+roles = ["payment"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Korean 사업자 with 사업자등록증 and a settlement account. Toss review takes 1 to 2 days and the card-company review up to 14 days (FAQ); a 통신판매업 신고 is not a precondition for the PG contract, but the card review expects 사업자등록번호, 통신판매신고번호, 대표자명, 주소 and 연락처 in the site footer (Toss blog), and the PG issues the 구매안전서비스 이용확인증 the 신고 needs. Overseas cards (Visa, Mastercard, JCB, Amex, Diners, Discover, UnionPay) need an additional contract: registration 2 business days plus 10 to 14 business days of issuer review; KRW settlement."
+commercial_terms = "Domestic (VAT 별도): 가입비 220,000원 once, 연관리비 110,000원 per year (both contract-dependent), 신용/체크카드 3.4% (일반; 영세/중소 tiers refunded automatically once NTS lists the business), 간편결제 3.4%, 계좌이체 2.0%, 가상계좌 400원, 휴대폰 for digital content 7.0%; settlement within about 5 days; 보증보험 waived up to a 10,000,000원 settlement limit. Overseas-card fee is priced separately (not printed; 4.5% reported). PayPal via Toss: 4.0% + 0.30 USD + 2.5% (FX and withdrawal) + VAT, USD checkout, KRW settlement weekly + 4 days, contract in 2 to 3 business days; a cancelled PayPal payment does not refund the original fee. Not a merchant of record: Korean VAT is the platform's."
+integration = "api"
+credentials = ["TOSS_CLIENT_KEY", "TOSS_SECRET_KEY"]
+permissions = "Payments API v2 (card, 간편결제, 가상계좌, 해외카드 after contract, PayPal after contract); live keys and MID issued after the contract."
+rate_limits = "Not published on the pages read."
+supported_operations = ["collect KRW from Korean customers by card and wallet", "collect from overseas cards in KRW after the extra contract", "collect PayPal in USD settled in KRW", "issue 현금영수증 through the PG"]
+manual_dependency = "사업자등록; website with terms, refund policy, privacy policy and the footer business information; 통신판매업 신고 (or the exemption: fewer than 50 transactions in the previous year, or 간이과세자); contract signature; separate 해외카드 and PayPal contracts."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.tosspayments.com/about/fee", evidence = "verified", checked = "2026-09-28", note = "Fee table: 가입비, 연관리비, 3.4%, PayPal 4.0% + 0.30 USD + 2.5%, 영세/중소 auto-refund" },
+  { url = "https://docs.tosspayments.com/resources/faq", evidence = "verified", checked = "2026-09-28", note = "Toss review 1-2 days, card review up to 14 days, live keys after contract" },
+  { url = "https://docs.tosspayments.com/guides/v2/learn/foreign-payment", evidence = "verified", checked = "2026-09-28", note = "Overseas cards need an additional contract; PayPal timelines" },
+  { url = "https://docs.tosspayments.com/resources/glossary/international-payment", evidence = "verified", checked = "2026-09-28", note = "Card brands, KRW settlement, fee priced separately" },
+  { url = "https://www.tosspayments.com/blog/articles/semo-5", evidence = "verified", checked = "2026-09-28", note = "2021-05-25: footer information for card review; 통신판매업 exemption under 50 transactions" },
+  { url = "https://help.portone.io/content/tosspayments-contract", evidence = "verified", checked = "2026-09-28", note = "Contract mail within 3 business days; card review about 2 weeks" },
+  { url = "https://blog.portone.io/opi_pg-comparison_global/", evidence = "reported", checked = "2026-09-28", note = "2026-05-08 PG comparison: Toss 해외카드 4.5%, KRW only" },
+  { url = "https://www.tosspayments.com/notice/24636", evidence = "unknown", checked = "2026-09-28", note = "Fee disclosure page renders no table without JavaScript" },
+]
+
+[[integrations]]
+id = "paypal_business_kr"
+name = "PayPal Business account (Korea) for payments from abroad"
+roles = ["payment"]
+verdict = "go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Opened online the same day with the legal name, email, 비즈니스 등록 번호, business description and a Korean business bank account (PayPal KR business page). Receives payments from senders outside Korea; Korean-to-Korean payments are reported as unsupported. Acceptable Use Policy (2022-10-29) requires pre-approval for a payment facilitator whose services \"would also include the sale of stored value cards\"; a credit redeemable only for the platform's own service is not a stored value card (inferred)."
+commercial_terms = "Fee page (최종 업데이트 2026-05-28): receiving from outside Korea 4.40% + fixed fee (0.30 USD); currency conversion 3.00% for withdrawals in another currency; withdrawal to a Korean bank free above 150,000 KRW, 1,500 KRW below; minimum withdrawal 10 USD; funds arrive in 3 to 5 business days; withdrawal cap 20,000 USD per business day. All-in on a USD sale withdrawn to KRW about 4.4% + 0.30 USD + 3% (inferred). Not a merchant of record. Foreign-exchange rule: payments up to USD 10,000 per current-account transaction need no Bank of Korea report (BOK page); the bank reports withdrawals."
+integration = "api"
+credentials = ["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET"]
+permissions = "PayPal Checkout and payment links on a verified business account; new-account holds until verification (not verified)."
+rate_limits = "Not published on the pages read."
+supported_operations = ["collect USD, EUR, JPY and other currencies from foreign customers", "withdraw to a Korean bank in KRW"]
+manual_dependency = "사업자등록번호 and bank account; identity verification; 외화 receipts declared for VAT 영세율 and income tax with the accountant."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.paypal.com/kr/business/open-business-account", evidence = "verified", checked = "2026-09-28", note = "Requirements to open a Korean business account" },
+  { url = "https://www.paypal.com/kr/webapps/mpp/merchant-fees", evidence = "verified", checked = "2026-09-28", note = "Fees updated 2026-05-28: 4.40% + fixed fee, 3.00% conversion, KRW withdrawal fees" },
+  { url = "https://www.paypal.com/us/legalhub/paypal/acceptableuse-full", evidence = "verified", checked = "2026-09-28", note = "AUP 2022-10-29: stored value cards need pre-approval" },
+  { url = "https://www.bok.or.kr/portal/main/contents.do?menuNo=200404", evidence = "verified", checked = "2026-09-28", note = "BOK: payments up to USD 10,000 per current-account transaction exempt from 신고" },
+  { url = "https://imweb.me/faq?mode=view&category=29&category2=39&idx=71591", evidence = "reported", checked = "2026-09-28", note = "Korea-to-Korea PayPal payments not supported" },
+]
+
+[[integrations]]
+id = "paddle"
+name = "Paddle (merchant of record for global card sales)"
+roles = ["payment"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Korea is absent from Paddle's list of unsupported supplier countries, so a Korean seller can apply (verified by absence). Onboarding: domain review (product description, pricing page, Terms, Refund Policy and Privacy Policy linked in the navigation, HTTPS; manual review 5 to 7 business days), business identification with the government registration document (instant or 2 to 4 business days), identity verification. Prohibited categories (Last Updated 2026-04-13) include \"Virtual currency or stored value, including but not limited to store credit, gift cards, vouchers\" and marketplaces that let non-Paddle sellers sell; prepaid usage of the platform's own SaaS is the usual framing, but Paddle's text has no seller-issued carve-out, so written confirmation from Paddle is required before selling credits through it."
+commercial_terms = "5% + 50 cents per checkout transaction, covering tax registration, filing and remittance as merchant of record (Paddle collects Korean VAT from Korean buyers and foreign VAT abroad). Payouts in USD (no KRW), created on the 1st and sent by the 15th, minimum $100, wire or Payoneer, conversion margin up to 1.5%, a $15 SWIFT fee for some countries; the Korean bank converts to KRW."
+integration = "api"
+credentials = ["PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"]
+permissions = "Paddle Billing checkout and webhooks after account verification; sandbox immediately."
+rate_limits = "Not published on the pages read."
+supported_operations = ["sell to customers worldwide with VAT handled by Paddle", "receive USD payouts to a Korean bank"]
+manual_dependency = "Live website with Terms, Refund Policy, Privacy Policy; 사업자등록증; identity check; Paddle's written confirmation that non-transferable, non-cashable AI usage credits are not \"store credit\" under its prohibited list."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.paddle.com/help/start/intro-to-paddle/which-countries-are-supported-by-paddle", evidence = "verified", checked = "2026-09-28", note = "Unsupported supplier countries; Korea not listed" },
+  { url = "https://www.paddle.com/pricing", evidence = "verified", checked = "2026-09-28", note = "5% + 50 cents" },
+  { url = "https://www.paddle.com/help/start/account-verification", evidence = "verified", checked = "2026-09-28", note = "Three verification phases and documents" },
+  { url = "https://www.paddle.com/help/manage/get-paid/can-i-be-paid-in-my-local-currency", evidence = "verified", checked = "2026-09-28", note = "Payout currencies, no KRW" },
+  { url = "https://www.paddle.com/help/manage/get-paid/when-and-how-do-i-get-paid", evidence = "verified", checked = "2026-09-28", note = "Payout schedule and $100 minimum" },
+  { url = "https://www.paddle.com/help/start/intro-to-paddle/what-am-i-not-allowed-to-sell-on-paddle", evidence = "verified", checked = "2026-09-28", note = "Prohibited categories 2026-04-13 incl. store credit, gift cards, vouchers" },
+]
+
+[[integrations]]
+id = "polar_sh"
+name = "Polar (merchant of record on Stripe Connect; Korea in the payout list)"
+roles = ["payment"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Supported payout countries include South Korea (docs). Acceptable Use (2026-03-25) allows software, SaaS and digital products, reviews \"AI Content Generation tools\" more closely, prohibits NFTs and crypto assets, and has no stored-value line. Store review before going live; duration not verified."
+commercial_terms = "Starter 5% + 50 cents per transaction (Pro 3.8% + 40 cents, Growth 3.6% + 35 cents, Scale 3.4% + 30 cents); international cards +1.5%; subscriptions +0.5%; disputes $15; payouts $2 per active payout month plus 0.25% + $0.25 per payout plus cross-border 0.25% (EU) to 1% elsewhere. Merchant of record: Polar handles VAT and sales tax."
+integration = "api"
+credentials = ["POLAR_ACCESS_TOKEN", "POLAR_WEBHOOK_SECRET"]
+permissions = "Checkout links, customer portal, usage-based billing API and webhooks."
+rate_limits = "Not published on the pages read."
+supported_operations = ["sell credits or usage to customers worldwide with tax handled", "payout to a Korean bank via Stripe Connect Express"]
+manual_dependency = "Account and store review; Korean bank details; product described as prepaid SaaS usage."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://polar.sh/docs/merchant-of-record/supported-countries", evidence = "verified", checked = "2026-09-28", note = "Payout countries include South Korea" },
+  { url = "https://polar.sh/docs/merchant-of-record/fees", evidence = "verified", checked = "2026-09-28", note = "Fee tiers, international +1.5%, payout fees" },
+  { url = "https://polar.sh/docs/merchant-of-record/acceptable-use", evidence = "verified", checked = "2026-09-28", note = "2026-03-25: AI generation tools reviewed; no stored-value line" },
+]
+
+[[integrations]]
+id = "lemon_squeezy"
+name = "Lemon Squeezy (merchant of record, owned by Stripe, in maintenance mode)"
+roles = ["payment"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Supported seller countries list includes \"Republic of Korea (ROK)\". Prohibited products: services of any kind, NFT and crypto products, marketplaces, PLR/MRR; no stored-value line. Blog of 2026-01-28: the goal is to migrate users to Stripe Managed Payments, whose eligible business locations do not include Korea, so a Korean seller's migration path is unclear (inferred risk)."
+commercial_terms = "5% + 50 cents per order, +1.5% international, +1.5% PayPal, +0.5% subscriptions; payouts 1% for bank accounts outside the US or 3% capped at $30 via PayPal (payout page 404; from the fees page and search snippets). Merchant of record: taxes handled."
+integration = "api"
+credentials = ["LEMONSQUEEZY_API_KEY", "LEMONSQUEEZY_WEBHOOK_SECRET"]
+permissions = "Checkout overlays, license keys, webhooks after store activation."
+rate_limits = "Not published on the pages read."
+supported_operations = ["sell to customers worldwide with tax handled", "payout to a Korean bank at 1%"]
+manual_dependency = "Store activation review (duration not verified); plan for migration risk."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://docs.lemonsqueezy.com/help/getting-started/supported-countries", evidence = "verified", checked = "2026-09-28", note = "Republic of Korea listed" },
+  { url = "https://docs.lemonsqueezy.com/help/getting-started/fees", evidence = "verified", checked = "2026-09-28", note = "5% + 50 cents and surcharges" },
+  { url = "https://docs.lemonsqueezy.com/help/getting-started/prohibited-products", evidence = "verified", checked = "2026-09-28", note = "No stored-value line" },
+  { url = "https://www.lemonsqueezy.com/blog/2026-update", evidence = "verified", checked = "2026-09-28", note = "2026-01-28: migration to Stripe Managed Payments" },
+  { url = "https://docs.lemonsqueezy.com/help/getting-started/getting-paid", evidence = "unknown", checked = "2026-09-28", note = "404; payout terms from snippets only" },
+]
+
+[[integrations]]
+id = "eximbay"
+name = "Eximbay (Korean cross-border PG: overseas cards and wallets settled in KRW or USD)"
+roles = ["payment"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "Korean businesses only. Documents for 개인사업자: 사업자등록증, 대표자 인감증명, 대표자 명의 통장사본 (법인 adds 등기부등본, 법인인감증명, 주주명부); 통신판매업신고증 not on the list. Application fee 330,000원 (VAT incl.), non-refundable whatever the outcome; card-scheme review about 2 to 3 weeks (reported). Digital-content platforms use it (inferred acceptable, subject to review)."
+commercial_terms = "Global cards Visa, Mastercard, JCB, Amex, UnionPay, Diners, Discover: fee \"별도협의\" on Eximbay's page, 4.50% via PortOne's help page; PayPal 4.4% + 0.30 USD + 0.2%; Alipay and WeChat 2.8% to 2.9%; chargeback 11,000원 per case; 3DS 10원 per case. Settlement in KRW or USD, each week's transactions paid three weeks later; starting cap USD 1,000 per month and 5 payments per card per month. Not a merchant of record."
+integration = "api"
+credentials = ["EXIMBAY_MID", "EXIMBAY_SECRET_KEY"]
+permissions = "Hosted payment page and API after contract."
+rate_limits = "Starting monthly cap USD 1,000 until raised."
+supported_operations = ["collect overseas cards and wallets in the platform's own name", "settle in KRW or USD"]
+manual_dependency = "Application fee, documents, 2 to 3 weeks review, cap increases by request."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.eximbay.com/guide/guide-fee-online.do", evidence = "verified", checked = "2026-09-28", note = "Application fee 330,000원, card fee by negotiation, PayPal and wallet fees" },
+  { url = "https://www.eximbay.com/guide/guide-apply-online.do", evidence = "verified", checked = "2026-09-28", note = "Documents by business type" },
+  { url = "https://help.portone.io/content/eximbay-international", evidence = "verified", checked = "2026-09-28", note = "4.50% cards, settlement 3 weeks after each week, USD 1,000 starting cap, Korean businesses only" },
+  { url = "https://support.bstage.in/hc/en-us/articles/6555245390351", evidence = "reported", checked = "2026-09-28", note = "2-3 weeks review (page 403; snippet only)" },
+]
+
+[[integrations]]
+id = "portone"
+name = "PortOne (포트원, payment orchestration over Korean PGs and cross-border service)"
+roles = ["payment", "infrastructure"]
+verdict = "conditional"
+status = "not_connected"
+connected = false
+region_ok_for_korea = true
+eligibility = "One integration over many PGs (Toss, KCP, Inicis, Eximbay, PayPal, Payletter); each PG contract is still signed separately. Free plan for monthly net volume under 50,000,000원; Growth from 100,000원 per month. Cross-border service 0.5% of volume with a USD 500 monthly minimum, aimed at larger merchants; its product page was unreachable."
+commercial_terms = "PortOne's own fee is the plan fee; PG fees and 가입비 are the underlying PG's (Payletter via PortOne adds 0.5%). Not a PG and not a merchant of record."
+integration = "api"
+credentials = ["PORTONE_API_SECRET", "PORTONE_STORE_ID"]
+permissions = "Payment SDK and webhooks routing to contracted PGs."
+rate_limits = "Not published on the pages read."
+supported_operations = ["single integration across domestic and overseas PGs"]
+manual_dependency = "Sign each PG contract; only worth it when more than one PG is used."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://www.portone.io/pricing", evidence = "verified", checked = "2026-09-28", note = "Plans dated 2026-07-31: Free under 50M KRW, Growth from 100,000원" },
+  { url = "https://help.portone.io/content/portone-pricing", evidence = "verified", checked = "2026-09-28", note = "Cross-border 0.5%, min USD 500 per month" },
+  { url = "https://portone.io/korea/ko/service/crossborder", evidence = "unknown", checked = "2026-09-28", note = "404" },
+]
+
+[[integrations]]
+id = "stripe"
+name = "Stripe (not available to a Korean business entity)"
+roles = ["payment"]
+verdict = "no_go"
+status = "not_connected"
+connected = false
+region_ok_for_korea = false
+eligibility = "South Korea is not a supported business location on stripe.com/global (verified 2026-09-28) and is not eligible for Stripe Managed Payments (merchant of record; eligible locations are the US, Canada, EU/EEA plus CH/GB/NO/LI, Australia, Hong Kong, Japan, Singapore). Stripe can accept Korean customers' cards for a business located elsewhere. The only route is a foreign entity, for example Stripe Atlas ($500 plus $100 per year; EIN in 10 to 45 business days without an SSN; Delaware franchise tax and US federal filings; approval for Stripe payments not guaranteed): a structural choice that brings its own tax filings in the US and Korea, not a workaround."
+commercial_terms = "Not applicable to a Korean entity. Restricted businesses (2026-09-22) list \"virtual credits, or other products and services in which a monetary value is stored within the item\" and \"Sale of stored value or credits maintained, accepted, and issued by anyone other than the seller\", while \"Seller-maintained stored value or credits may be subject to limits\": the wording that distinguishes the platform's own usage credits from stored value."
+integration = "none"
+credentials = []
+permissions = "n/a"
+rate_limits = "n/a"
+supported_operations = []
+manual_dependency = "A foreign company, its bank account and tax filings, before any Stripe account."
+health = "unverified"
+last_verified = "2026-09-28"
+sources = [
+  { url = "https://stripe.com/global", evidence = "verified", checked = "2026-09-28", note = "Korea not a supported business location" },
+  { url = "https://docs.stripe.com/payments/countries/korea", evidence = "verified", checked = "2026-09-28", note = "Korean payment methods for businesses located elsewhere" },
+  { url = "https://docs.stripe.com/payments/managed-payments/eligibility", evidence = "verified", checked = "2026-09-28", note = "Managed Payments eligible locations; AIaaS tax codes" },
+  { url = "https://stripe.com/legal/restricted-businesses", evidence = "verified", checked = "2026-09-28", note = "2026-09-22: stored value wording" },
+  { url = "https://docs.stripe.com/atlas/signup", evidence = "verified", checked = "2026-09-28", note = "Atlas cost, EIN timing, no guarantee of approval" },
+]
