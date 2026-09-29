@@ -65,6 +65,9 @@ max_provider_exposure_krw = "pending" # prepaid credits plus open reservations a
 platform_fee_rate = "pending"         # fee on metered provider cost in platform_credits mode, e.g. 0.2
 savings_share_rate = "pending"        # share of verified savings charged in own_keys mode, e.g. 0.25
 min_quality_score = "pending"         # 0..1; no route is offered below this whatever a customer asks for, e.g. 0.6
+terms_url = "pending"                 # the platform's 이용약관 every customer accepts: passes down each provider's usage policy and supported regions
+privacy_policy_url = "pending"        # 개인정보처리방침 listing every foreign provider with the five items of 개인정보 보호법 제28조의8 ②
+disclosed_providers = "pending"       # providers named in that policy; the router refuses a provider not listed here, e.g. ["anthropic_api"]
 
 [goals]
 target_realized_profit_krw = 1000000  # tracked against reconciled live net profit only, never simulated sales

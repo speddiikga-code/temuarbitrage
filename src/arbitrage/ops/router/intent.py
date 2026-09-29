@@ -35,6 +35,35 @@ _KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
 _DECOMPOSABLE = frozenset({"extraction", "classification", "summarization", "translation", "research"})
 _STRUCTURED = frozenset({"extraction", "classification"})
 
+# Personal-information classifier: conservative patterns, any match counts. It decides where an input may NOT go
+# (a PRC-hosted endpoint), never that an input is free of personal information.
+_PERSONAL_INFO: tuple[tuple[str, re.Pattern], ...] = (
+    ("email", re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")),
+    ("phone", re.compile(r"(?<!\d)(?:\+?82[-\s.]?|0)1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}(?!\d)|(?<!\d)\+\d{1,3}[-\s.]?\d{2,4}[-\s.]?\d{3,4}[-\s.]?\d{3,4}(?!\d)")),
+    ("resident_registration_number", re.compile(r"(?<!\d)\d{6}[-\s]?[1-8]\d{6}(?!\d)")),
+    ("card_number", re.compile(r"(?<!\d)\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}(?!\d)")),
+    ("customs_code", re.compile(r"(?<![A-Za-z0-9])P\d{12}(?!\d)")),           # 개인통관고유부호
+)
+_HIGH_RISK: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("legal", ("legal advice", "lawsuit", "소송", "법률 자문", "law firm")),
+    ("medical", ("diagnosis", "diagnose", "prescription", "symptom", "진단", "처방", "medical advice")),
+    ("finance", ("investment advice", "loan approval", "대출 승인", "투자 자문", "financial advice")),
+    ("employment", ("hiring decision", "reject the candidate", "채용 결정", "screen applicants")),
+    ("housing", ("tenant screening", "임차인 심사", "rental application")),
+    ("insurance", ("insurance claim", "보험금 청구", "underwriting")),
+    ("credit", ("credit score", "creditworthiness", "신용 평가", "신용점수")),
+)
+
+
+def personal_info(text: str) -> tuple[str, ...]:
+    """Categories of personal information the classifier finds in the text (conservative: patterns, any match)."""
+    return tuple(name for name, pat in _PERSONAL_INFO if pat.search(text))
+
+
+def high_risk_domains(text: str) -> tuple[str, ...]:
+    low = text.lower()
+    return tuple(name for name, words in _HIGH_RISK if any(w in low for w in words))
+
 
 @dataclass(frozen=True)
 class RouteRequest:
@@ -52,7 +81,8 @@ class RouteRequest:
     language: str | None = None           # answer language; detected from the prompt when absent
     max_output_tokens: int = 1024
     baseline_catalog_id: str | None = None   # the route the customer would have used; savings are measured against it
-    metadata: dict = field(default_factory=dict)
+    residency: str | None = None          # customer-selected provider region; None = cheapest sanctioned route (never silent residency)
+    metadata: dict = field(default_factory=dict)  # never a model or provider name: a request cannot force a route
 
     def validate(self) -> None:
         if not self.idempotency_key or not self.customer_id:
@@ -71,6 +101,8 @@ class RouteRequest:
             raise OpsError("max_output_tokens must be positive")
         if self.latency_max_ms is not None and self.latency_max_ms <= 0:
             raise OpsError("latency_max_ms must be positive when given")
+        if self.residency is not None and not str(self.residency).strip():
+            raise OpsError("residency names a region or is omitted")
 
 
 @dataclass(frozen=True)
@@ -85,6 +117,8 @@ class Intent:
     decomposable: bool
     declared: bool                       # the customer named the task type
     notes: tuple[str, ...] = ()
+    personal_info: tuple[str, ...] = ()  # categories of personal information detected in the input (classifier, conservative)
+    high_risk: tuple[str, ...] = ()      # high-risk domains detected (legal, medical, finance, employment, housing, insurance, credit)
 
     @property
     def input_tokens(self) -> int:
@@ -94,7 +128,7 @@ class Intent:
         return {"task_type": self.task_type, "input_language": self.input_language, "answer_language": self.answer_language,
                 "prompt_tokens": self.prompt_tokens, "context_tokens": self.context_tokens, "capabilities": list(self.capabilities),
                 "structured_output": self.structured_output, "decomposable": self.decomposable, "declared": self.declared,
-                "notes": list(self.notes)}
+                "notes": list(self.notes), "personal_info": list(self.personal_info), "high_risk": list(self.high_risk)}
 
 
 # -- scripts and tokens ------------------------------------------------------------------------------------
@@ -171,8 +205,14 @@ def compile_intent(request: RouteRequest) -> Intent:
         caps.append("vision")
     if task_type == "coding":
         caps.append("code")
+    full = f"{request.prompt}\n{request.context}"
+    pii, risk = personal_info(full), high_risk_domains(full)
+    if pii:
+        notes.append("personal information detected (" + ", ".join(pii) + "): PRC-hosted endpoints are excluded")
+    if risk:
+        notes.append("high-risk domain (" + ", ".join(risk) + "): the output is labelled for a qualified human's review")
     return Intent(task_type, input_language, answer_language, prompt_tokens, context_tokens, tuple(caps),
-                  task_type in _STRUCTURED, task_type in _DECOMPOSABLE and context_tokens > 0, declared, tuple(notes))
+                  task_type in _STRUCTURED, task_type in _DECOMPOSABLE and context_tokens > 0, declared, tuple(notes), pii, risk)
 
 
 # -- Layer 3: semantic compressor --------------------------------------------------------------------------

@@ -45,7 +45,7 @@ external_actions = ["call_providers", "prepay_providers", "collect_payment", "is
 
 [router]
 providers = ["simulated:provider-a", "simulated:provider-b"]
-permitted_regions = ["us", "kr"]
+permitted_regions = ["us", "kr", "cn"]      # cn rows are PRC-hosted: gated on the tenant opt-in and the personal-information classifier
 permitted_task_types = ["coding", "translation", "extraction", "reasoning", "classification", "research", "summarization", "chat"]
 billing_modes = ["own_keys", "platform_credits"]
 max_request_cost_krw = 5000
@@ -55,6 +55,9 @@ max_provider_exposure_krw = 200000
 platform_fee_rate = 0.2
 savings_share_rate = 0.25
 min_quality_score = 0.6
+terms_url = "https://example.invalid/simulated-terms"
+privacy_policy_url = "https://example.invalid/simulated-privacy"
+disclosed_providers = ["simulated:provider-a", "simulated:provider-b"]
 
 [goals]
 target_realized_profit_krw = 1000000

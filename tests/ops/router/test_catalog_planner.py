@@ -14,7 +14,7 @@ from .conftest import CATALOG, SIM
 def entry(**kw):
     e = {"id": "simulated:provider-a:tiny:us", "provider": "simulated:provider-a", "model": "tiny", "region": "us", "task_types": ["chat"],
          "context_window": 8000, "input_micros_per_mtok": 100000, "output_micros_per_mtok": 400000, "currency": "USD", "latency_ms": 300,
-         "quality": {"chat": 0.7}, "terms_permit": True,
+         "quality": {"chat": 0.7}, "terms_permit": True, "customer_countries": ["kr", "us"], "data_residency": "us",
          "evidence": {"source": "placeholder", "url": "https://example.invalid/x", "date": "2026-09-28", "verified": False}}
     e.update(kw)
     return e
@@ -100,8 +100,11 @@ def test_objectives_pick_and_ladder_climbs_by_quality(router):
     economy = plan(intent, 1_000, rows, constraints(quality_min=0.7))
     assert economy.chosen.catalog_id == "simulated:provider-a:small:us"
     assert [r.catalog_id for r in economy.ladder] == ["simulated:provider-a:small:us", "simulated:provider-b:medium:kr", "simulated:provider-a:large:us"]
-    assert set(economy.rejected) == {"simulated:provider-b:grey:us", "simulated:provider-b:medium:eu"}
-    assert any("unverified" in n for n in economy.notes)
+    assert set(economy.rejected) == {"simulated:provider-b:grey:us", "simulated:provider-b:medium:eu", "simulated:provider-b:medium:cn",
+                                     "simulated:provider-a:free:us"}
+    assert any("free tier never carries customer traffic" in x for x in economy.rejected["simulated:provider-a:free:us"])
+    assert any("opt-in" in x for x in economy.rejected["simulated:provider-b:medium:cn"])
+    assert any("unverified" in n for n in economy.notes) and any("cheapest sanctioned route" in n for n in economy.notes)
     stricter = plan(intent, 1_000, rows, constraints(quality_min=0.8))
     assert stricter.chosen.catalog_id == "simulated:provider-b:medium:kr"
     assert "quality 0.72 below threshold 0.80" in stricter.rejected["simulated:provider-a:small:us"]
@@ -110,7 +113,7 @@ def test_objectives_pick_and_ladder_climbs_by_quality(router):
     balanced = plan(intent, 1_000, rows, constraints(quality_min=0.7, optimization="balanced"))
     assert balanced.chosen.catalog_id in ("simulated:provider-a:small:us", "simulated:provider-b:medium:kr")
     capped = plan(intent, 1_000, rows, constraints(quality_min=0.7, cost_cap_krw=1))
-    assert not capped.feasible and all(any("cost cap" in p for p in v) for k, v in capped.rejected.items() if k not in ("simulated:provider-b:grey:us", "simulated:provider-b:medium:eu"))
+    assert not capped.feasible and all(any("cost cap" in p for p in v) for k, v in capped.rejected.items() if k not in ("simulated:provider-b:grey:us", "simulated:provider-b:medium:eu", "simulated:provider-b:medium:cn", "simulated:provider-a:free:us"))
     platform = plan(intent, 1_000, rows, constraints(quality_min=0.7, platform_request_cap_krw=1))
     assert not platform.feasible and any("mandate's per-request cap" in p for p in platform.rejected["simulated:provider-a:small:us"])
     latency = plan(intent, 1_000, rows, constraints(quality_min=0.7, latency_max_ms=500))

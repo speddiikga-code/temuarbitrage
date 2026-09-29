@@ -30,6 +30,7 @@ the live mandate now requires the router's fields, not the storefront and suppli
 | Router: semantic cache, quality judge (structural checks + scorer), `inference_call` and `provider_prepayment` actions | `ops/router/cache.py`, `ops/router/judge.py`, `ops/gateway.py` | yes |
 | Router: platform-credits and own-keys billing, dispute windows, refunds, realized profit on requests | `ops/router/billing.py`, `ops/router/service.py`, `ops/metrics.py` | yes, end to end with simulated providers, judge and processor |
 | Router: reconciliation of unknown results, workflows and schedules, report, CLI (`router demo/requests/catalog`), dashboard section | `ops/router/service.py`, `ops/router/jobs.py`, `ops/router/reporting.py`, `ops/cli.py` | yes |
+| Router: the twelve provider rules from `docs/provider_terms.md` §3 (registry-cleared providers, end-user country screening, pre-disclosed providers, PRC opt-in and personal-information classifier, no free tiers, per-tenant cache, residency as an explicit choice, terms and AI disclosure at registration, no pass-through, list price per call) | `ops/router/providers.py`, `ops/router/planner.py`, `ops/router/billing.py`, `ops/router/intent.py` | yes |
 
 Test commands and results are in the pull request description and the thread; the current run is
 `pytest` (SQLite) and `OPSCORE_TEST_DATABASE_URL=postgresql://... pytest` (each ops test again on PostgreSQL 16).
@@ -41,7 +42,7 @@ here but not run: the development environment has no Docker daemon. First run be
 
 ## Live
 
-Nothing. No live adapter exists; the registry has no production-ready integration; the live mandate has 31 pending
+Nothing. No live adapter exists; the registry has no production-ready integration; the live mandate has 34 pending
 fields for the router domain; live books are empty; no customer exists. Realized profit toward the KRW 1,000,000
 target: ₩0.
 
@@ -62,8 +63,9 @@ target: ₩0.
 ### For the router domain (the live mandate since 2026-09-28)
 
 1. **The mandate.** Every `[router]` field (providers, permitted regions and task types, billing modes, per-request,
-   daily, prepaid and exposure caps, platform fee rate, savings share rate, minimum quality) plus the generic fields:
-   business identity, payment processors, funding source and payout destination, capital, limits, reserves.
+   daily, prepaid and exposure caps, platform fee rate, savings share rate, minimum quality, the published terms and
+   privacy policy URLs and the providers that policy discloses) plus the generic fields: business identity, payment
+   processors, funding source and payout destination, capital, limits, reserves.
 2. **Accounts.** A payment processor (Stripe or Toss) that settles to the owner's bank; an account and funding at
    each provider the mandate names, with keys held outside git; business registration and VAT treatment for
    exported services.

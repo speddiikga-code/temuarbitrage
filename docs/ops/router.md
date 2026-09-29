@@ -89,19 +89,50 @@ metered cost`, invoiced through the processor; the request is `invoiced` on capt
 dispute window has ended count, net of provider cost, processor fees, FX and the refund reserve. Failed attempts are
 a realized loss the platform carries. Simulated figures never count toward the goal.
 
-## Money limits (mandate `[router]`)
+## Money limits and disclosures (mandate `[router]`)
 
 `providers`, `permitted_regions`, `permitted_task_types`, `billing_modes`, `max_request_cost_krw`,
 `max_daily_inference_spend_krw`, `max_provider_prepaid_krw`, `max_provider_exposure_krw`, `platform_fee_rate`,
-`savings_share_rate`, `min_quality_score`. All are `"pending"` in `mandate.toml`, so the live router refuses
-everything; `mandate.router.simulated.toml` carries test values.
+`savings_share_rate`, `min_quality_score`, `terms_url`, `privacy_policy_url`, `disclosed_providers`. All are
+`"pending"` in `mandate.toml`, so the live router refuses everything; `mandate.router.simulated.toml` carries test
+values.
+
+## Provider rules the router enforces
+
+The provider-terms work (task 13, `docs/provider_terms.md` section 3 on branch `claude/provider-terms-0oikmd`, draft
+PR #7) read the terms of 21 AI providers and 8 payment processors and wrote twelve rules. Each is enforced in code or
+recorded per request, and each has a test in `tests/ops/router/test_provider_rules.py` or `test_route_flow.py`:
+
+| Rule (provider_terms.md §3) | Where it is enforced |
+|---|---|
+| 1 Keys stay server-side | `customers.provider_credentials` holds environment-variable names only; a key value is refused at registration. End users never see a provider name unless the customer's product shows it: the delivered result carries labels, not the route. |
+| 2 The platform's credit is its own instrument | Top-ups are the platform's liability (2600), never provider credits (1400); a balance is charged only for this platform's requests, never moved to another customer, and a refund returns to the same balance or reverses the original processor payment. |
+| 3 Users bound to each provider's policy and supported regions | `register_customer` needs `terms_accepted_at`; the customer's `region` is their country and the planner rejects every catalog row whose `customer_countries` does not list it. |
+| 4 AI disclosure and output labelling; high-risk domains | `register_customer` needs `ai_disclosure_confirmed`; every delivered request carries `labels.ai_generated = true`; the intent compiler flags legal, medical, finance, employment, housing, insurance and credit prompts and the result carries `human_review_required = true`. |
+| 5 No bare pass-through | A request cannot name a model, provider or endpoint (`metadata` is ignored by the planner); every request is compiled, planned, judged and billed. |
+| 6 One account per provider, no splitting | The mandate lists each provider once; prepaid credits and exposure are tracked per provider id, never per account. |
+| 7 Semantic cache per tenant | `cache_scope` is always `customer`; a hit is a repeat inside the same tenant only. |
+| 8 Residency is a customer choice, cheapest sanctioned by default | `RouteRequest.residency` restricts the plan to that region and the plan says so; without it the plan notes "cheapest sanctioned route; residency is a customer-selected option, never silent". |
+| 9 Foreign providers pre-disclosed | `router.disclosed_providers` in the mandate: a provider not listed in the privacy policy is rejected at planning and again at call verification. |
+| 10 PRC-hosted endpoints gated | Catalog rows carry `data_residency`; a `cn` row needs the tenant's `prc_opt_in` and is excluded whenever the personal-information classifier (emails, phone numbers, 주민등록번호, card numbers, 개인통관고유부호) finds anything. |
+| 11 Free tiers never carry customer traffic | Catalog rows carry `free_tier`; a free row is rejected at planning and at call verification. |
+| 12 Per-request record | `route_executions.list_price` stores the list price, currency, multiplier, region and hosting at call time with tokens, cost, FX and the verdict; the judge's own cost and source are in the request's `judge` record; `baseline_cost_krw` and `savings_verified` measure against what the customer could do alone. |
+
+A live catalog row is accepted only when the integration registry clears its provider: `service` is an AI inference
+service, `customer_app_allowed = "explicit"` (the first-pilot rule; `not_prohibited` only after counsel), and the
+verdict is not `no_go` or `unknown`. That reads the registry's extra fields through `ops/router/providers.py` without
+writing any entry; the registry stays with tasks 10 and 13. A live call is then refused until the registry calls the
+provider production-ready (status live, connected, verified operation), which no provider is today.
 
 ## Prices and evidence
 
-Every catalog row carries `evidence = {source, url, date, verified}`. Simulated rows are never verified and the
+Every catalog row carries `evidence = {source, url, date, verified}`, the countries whose end users the provider
+supports, where the endpoint is hosted and whether it is a free tier. Simulated rows are never verified and the
 planner says so in the plan. The live catalog is read from `integrations/model_catalog.toml` (or `OPS_MODEL_CATALOG`)
-and does not exist yet: it belongs with the provider-terms work (task 13), which decides GO or NO-GO per provider and
-owns `integrations/registry.toml`. Until it exists `arbitrage-ops router catalog` lists nothing in live mode.
+and does not exist yet; its prices should come from the `pricing_url` of each registry entry (task 13 read list
+prices on 2026-09-28 in `docs/provider_terms.md` section 5). Loading it needs `integrations/registry.toml` (or
+`OPS_REGISTRY`) so every provider is checked against the registry. Until both exist `arbitrage-ops router catalog`
+lists nothing in live mode.
 
 Token counts are estimates from character counts; the provider's usage record is the true count and the only one
 that is booked. FX in simulated mode is a static placeholder (`DEMO_FX_ORIGIN` in `ops/cli.py`); in live mode it
@@ -128,15 +159,25 @@ package, the `inference_call` and `provider_prepayment` actions, accounts 1400/2
 router tables, CLI and dashboard section. No customer exists. No provider account, key or funding exists in the
 repository, and none is claimed to exist anywhere else.
 
-Only the owner can do these, in this order:
+Only the owner can do these, in this order (details and sources in `docs/provider_terms.md` section 1b on the
+provider-terms branch):
 
-1. **Business registration** (사업자등록) and, for consumer sales, 통신판매업 신고; VAT treatment for exported services.
-2. **Payment processor account** (Stripe or Toss) able to charge customers and settle to the owner's bank account.
-3. **Provider accounts and funding** for each provider the mandate will name, with API keys held outside git, and a
-   decision on prepaid credits versus invoiced payables.
-4. **Mandate values**: every `[router]` field, the limits, reserves and `payment_processors` in `mandate.toml`.
-5. **Hosting**: a PostgreSQL host and a worker (the `docker-compose.yml` stack from task 11, never run here).
-6. **A customer** who agrees to terms and a price, and their first top-up or their own provider key.
+1. **Business registration** (사업자등록 as 일반과세자), 통신판매업 신고 (needs the payment processor's 구매안전서비스
+   이용확인증), VAT treatment for exported services.
+2. **Payment processor account** in the business's name: Toss Payments (KRW), PayPal Business Korea, Paddle or Polar;
+   Stripe has no Korean entity. Prepaid top-ups of about ₩50,000 / $50 and up, because processor fixed fees make
+   smaller charges uneconomic.
+3. **Provider accounts with prepaid credits** for each provider the mandate will name, one account per provider, keys
+   held outside git. First pilot: providers whose terms explicitly allow serving your own end users (`anthropic_api`,
+   `openai_api`, `google_gemini_api`, `google_vertex_ai`, `aws_bedrock`, `groq_cloud`, `cerebras_inference`,
+   `mistral_la_plateforme`, `moonshot_kimi`, `deepseek_api` for non-personal data; `azure_openai_foundry` conditional).
+4. **Terms and privacy policy** published: platform terms that pass down each provider's usage policy and supported
+   regions, and a privacy policy that names every foreign provider (개인정보 보호법 제28조의8); then the mandate's
+   `terms_url`, `privacy_policy_url` and `disclosed_providers`.
+5. **Mandate values**: every `[router]` field, the limits, reserves and `payment_processors` in `mandate.toml`.
+6. **Hosting**: a PostgreSQL host and a worker (the `docker-compose.yml` stack from task 11, never run here).
+7. **A customer** who accepts the terms and a price, confirms AI disclosure in their product, and makes a first top-up
+   or brings their own provider key.
 
 What code still needs before the first live request: live provider adapters (`complete`, `lookup`, `usage_report`
 against real APIs), a live payment processor adapter, a live quality scorer, the live catalog with sourced prices,

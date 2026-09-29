@@ -18,11 +18,14 @@ from typing import Any
 from ..audit import AuditTrail
 from ..common import LIVE, SIMULATED, canonical_json, loads, now_iso
 from ..db import Database, Tx
-from ..errors import OpsError
+from ..errors import NotConfigured, OpsError
 from ..mandate import TASK_TYPES
+from .providers import ProviderRules
 
 REQUIRED = ("id", "provider", "model", "region", "task_types", "context_window", "input_micros_per_mtok",
-            "output_micros_per_mtok", "currency", "latency_ms", "quality", "terms_permit", "evidence")
+            "output_micros_per_mtok", "currency", "latency_ms", "quality", "terms_permit", "evidence",
+            "customer_countries", "data_residency")
+PRC_RESIDENCY = "cn"          # a PRC-hosted endpoint: gated on a personal-information classifier and the tenant's opt-in
 EVIDENCE_FIELDS = ("source", "url", "date")
 QUALITY_ALPHA = 0.2          # weight of the newest verdict in the moving average
 DEFAULT_PATH = Path("integrations/model_catalog.toml")
@@ -35,14 +38,18 @@ class ModelCatalog:
 
     # -- loading (the refresh path) ------------------------------------------------------------------------
 
-    def load_file(self, tx: Tx, path: str | Path, mode: str, actor: str = "system") -> list[str]:
+    def load_file(self, tx: Tx, path: str | Path, mode: str, actor: str = "system", rules: ProviderRules | None = None) -> list[str]:
         data = tomllib.loads(Path(path).read_text("utf-8"))
         if data.get("schema_version") != 1:
             raise OpsError(f"{path}: expected schema_version 1, got {data.get('schema_version')!r}")
-        return self.load(tx, data.get("models", []), mode, actor)
+        return self.load(tx, data.get("models", []), mode, actor, rules)
 
-    def load(self, tx: Tx, entries: list[dict[str, Any]], mode: str, actor: str = "system") -> list[str]:
-        """Upsert price and capability facts. Learned quality is kept unless the entry's quality is newer evidence."""
+    def load(self, tx: Tx, entries: list[dict[str, Any]], mode: str, actor: str = "system",
+             rules: ProviderRules | None = None) -> list[str]:
+        """Upsert price and capability facts. Learned quality is kept unless the entry's quality is newer evidence.
+        A live catalog needs the registry's provider rules: a row whose provider the registry does not clear is refused."""
+        if mode == LIVE and rules is None and entries:
+            raise NotConfigured("a live catalog needs the integration registry's provider rules (ProviderRules.from_file)")
         ids = []
         for e in entries:
             missing = [f for f in REQUIRED if f not in e]
@@ -54,6 +61,18 @@ class ModelCatalog:
                 raise OpsError(f"catalog entry {e['id']}: a simulated catalog lists only simulated: providers")
             if mode == LIVE and e["provider"].startswith("simulated:"):
                 raise OpsError(f"catalog entry {e['id']}: a live catalog cannot list a simulated provider")
+            if mode == LIVE and rules is not None:
+                problems = rules.problems(e["provider"])
+                if problems:
+                    raise OpsError(f"catalog entry {e['id']}: " + "; ".join(problems))
+            countries = e["customer_countries"]
+            if not isinstance(countries, list) or not countries or not all(isinstance(c, str) and c.strip() for c in countries):
+                raise OpsError(f"catalog entry {e['id']}: customer_countries lists the countries whose end users the provider supports; "
+                               "an empty list routes nobody")
+            if "*" in countries:
+                raise OpsError(f"catalog entry {e['id']}: customer_countries names countries, never a wildcard")
+            if not isinstance(e["data_residency"], str) or not e["data_residency"].strip():
+                raise OpsError(f"catalog entry {e['id']}: data_residency names where the endpoint is hosted (e.g. global, us, kr, cn)")
             if not e["task_types"] or not set(e["task_types"]) <= set(TASK_TYPES):
                 raise OpsError(f"catalog entry {e['id']}: task_types must be from {TASK_TYPES}")
             for f in ("context_window", "input_micros_per_mtok", "output_micros_per_mtok", "latency_ms"):
@@ -77,6 +96,8 @@ class ModelCatalog:
                 "input_micros_per_mtok": e["input_micros_per_mtok"], "output_micros_per_mtok": e["output_micros_per_mtok"],
                 "currency": str(e["currency"]).upper(), "latency_ms": e["latency_ms"], "available": int(bool(e.get("available", True))),
                 "terms_permit": int(bool(e["terms_permit"])), "evidence": canonical_json(evidence), "updated_at": now_iso(), "mode": mode,
+                "customer_countries": canonical_json(sorted(c.strip().lower() for c in countries)),
+                "data_residency": e["data_residency"].strip().lower(), "free_tier": int(bool(e.get("free_tier", False))),
             }
             if before is None:
                 fields["quality"] = canonical_json({k: float(v) for k, v in quality.items()})
@@ -101,6 +122,8 @@ class ModelCatalog:
     def _decode(row: dict) -> dict:
         out = dict(row)
         out["task_types"] = loads(row["task_types"], [])
+        out["customer_countries"] = loads(row["customer_countries"], [])
+        out["free_tier"] = bool(row["free_tier"])
         out["quality"] = loads(row["quality"])
         out["quality_samples"] = loads(row["quality_samples"])
         out["evidence"] = loads(row["evidence"])

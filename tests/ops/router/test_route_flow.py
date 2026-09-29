@@ -20,7 +20,7 @@ from arbitrage.ops.router.reporting import router_report
 from arbitrage.ops.router.service import build_router
 from arbitrage.ops.workflows import WorkflowEngine
 
-from .conftest import CATALOG, FX, SIM, credits_customer, keys_customer, router_mandate_with, settle_topup
+from .conftest import ACCEPTED, CATALOG, FX, SIM, credits_customer, keys_customer, router_mandate_with, settle_topup
 
 PROMPT = "Classify the sentiment of this review: the product arrived late but works well and support answered quickly"
 LONG_PROMPT = "Classify the sentiment of each review. " + " ".join(
@@ -43,7 +43,7 @@ def metrics(core):
 
 def test_credits_customer_routes_only_from_settled_balance_and_profit_realizes_after_the_window(router):
     core = router.core
-    router.billing.register_customer(SIM, "acme", "Acme", "platform_credits", "simulated:billing", 0.10, "kr")
+    router.billing.register_customer(SIM, "acme", "Acme", "platform_credits", "simulated:billing", 0.10, "kr", **ACCEPTED)
     proc = core.adapters["simulated:billing"]
     top = router.billing.topup(SIM, "acme", 20_000, "acme:topup")
     auth = proc.authorize(top.id, 20_000, "KRW")
@@ -257,7 +257,7 @@ def test_pause_blocks_routing_and_a_pending_live_mandate_refuses_everything(rout
     live = build(db, pending_mandate(), {})
     live_router = build_router(live, None, FX, "test")
     with pytest.raises(OpsError, match="does not permit billing mode|pending"):
-        live_router.billing.register_customer(LIVE, "real", "Real Co", "platform_credits", "stripe", 0.10, "kr")
+        live_router.billing.register_customer(LIVE, "real", "Real Co", "platform_credits", "stripe", 0.10, "kr", **ACCEPTED)
     with live.db.transaction() as tx:
         assert live_router.catalog.list(tx, LIVE) == []
     assert router_report(live_router, LIVE)["requests"]["total"] == 0
@@ -314,14 +314,20 @@ def test_prepaid_provider_credits_are_bought_through_the_gateway_and_consumed_fi
 
 def test_customer_registration_never_stores_a_key_value_and_checks_the_mandate(router):
     with pytest.raises(OpsError, match="never stored"):
-        router.billing.register_customer(SIM, "bad", "Bad", "own_keys", "simulated:billing", 0.1, "kr", [{"provider": "simulated:provider-a", "credential_ref": "sk-live-abc"}])
+        router.billing.register_customer(SIM, "bad", "Bad", "own_keys", "simulated:billing", 0.1, "kr", [{"provider": "simulated:provider-a", "credential_ref": "sk-live-abc"}], **ACCEPTED)
     with pytest.raises(OpsError, match="at least one provider credential"):
-        router.billing.register_customer(SIM, "bad", "Bad", "own_keys", "simulated:billing", 0.1, "kr")
+        router.billing.register_customer(SIM, "bad", "Bad", "own_keys", "simulated:billing", 0.1, "kr", **ACCEPTED)
     with pytest.raises(OpsError, match="zero VAT"):
-        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "simulated:billing", 0.0, "us")
+        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "simulated:billing", 0.0, "us", **ACCEPTED)
     with pytest.raises(OpsError, match="simulated: processor"):
-        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "stripe", 0.1, "kr")
-    c = router.billing.register_customer(SIM, "ok", "Ok", "platform_credits", "simulated:billing", 0.0, "us", vat_basis="export of services, unverified")
+        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "stripe", 0.1, "kr", **ACCEPTED)
+    with pytest.raises(OpsError, match="terms_accepted_at is required"):
+        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "simulated:billing", 0.1, "kr", ai_disclosure_confirmed=True)
+    with pytest.raises(OpsError, match="AI disclosure"):
+        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "simulated:billing", 0.1, "kr", terms_accepted_at="2026-09-28T00:00:00+00:00")
+    with pytest.raises(OpsError, match="per tenant"):
+        router.billing.register_customer(SIM, "bad", "Bad", "platform_credits", "simulated:billing", 0.1, "kr", cache_scope="shared", **ACCEPTED)
+    c = router.billing.register_customer(SIM, "ok", "Ok", "platform_credits", "simulated:billing", 0.0, "us", vat_basis="export of services, unverified", **ACCEPTED)
     assert c["vat_rate"] == 0.0 and c["provider_credentials"] == []
     with pytest.raises(OpsError, match="own keys"):
         router.billing.topup(SIM, keys_customer(router, "byok"), 1_000, "byok:topup")

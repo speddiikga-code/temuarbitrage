@@ -191,17 +191,30 @@ class Billing:
 
     def register_customer(self, mode: str, customer_id: str, name: str, billing_mode: str, processor: str | None, vat_rate: float,
                           region: str, provider_credentials: list[dict] | None = None, cache_scope: str = "customer",
-                          vat_basis: str | None = None, actor: str = "owner") -> dict:
+                          vat_basis: str | None = None, actor: str = "owner", *, terms_accepted_at: str | None = None,
+                          ai_disclosure_confirmed: bool = False, prc_opt_in: bool = False) -> dict:
+        """Register a tenant. `region` is the customer's country (end users are screened against each provider's supported
+        list); `terms_accepted_at` records acceptance of the platform terms that pass down every provider's usage policy;
+        `ai_disclosure_confirmed` is the customer's confirmation that their product discloses AI at session start and labels
+        outputs (AI Basic Act Art. 31); `prc_opt_in` allows PRC-hosted endpoints for non-personal data."""
         if billing_mode not in BILLING_MODES:
             raise OpsError(f"billing_mode must be one of {BILLING_MODES}")
+        if not terms_accepted_at:
+            raise OpsError("a customer accepts the platform terms (which pass down each provider's usage policy and supported-regions "
+                           "rules) before registration: terms_accepted_at is required")
+        if not ai_disclosure_confirmed:
+            raise OpsError("the customer must confirm AI disclosure at session start and output labelling (AI Basic Act Art. 31) "
+                           "before any request is routed")
+        if not region or not str(region).strip():
+            raise OpsError("region is the customer's country; end users are screened by country against each provider's supported list")
         if not self.mandate.permits_billing_mode(billing_mode) and mode == LIVE:
             raise OpsError(f"the mandate does not permit billing mode {billing_mode}")
         if not 0 <= vat_rate <= 1:
             raise OpsError("vat_rate must be between 0 and 1")
         if vat_rate == 0 and not vat_basis:
             raise OpsError("a zero VAT rate needs its basis (e.g. the export rule relied on)")
-        if cache_scope not in ("customer", "shared"):
-            raise OpsError("cache_scope must be customer or shared")
+        if cache_scope != "customer":
+            raise OpsError("cache_scope is always customer: the semantic cache is per tenant, never shared across customers")
         creds = provider_credentials or []
         for c in creds:
             if not isinstance(c, dict) or not c.get("provider") or not _credential_ref_ok(c.get("credential_ref", "")):
@@ -217,8 +230,9 @@ class Billing:
             if existing:
                 return self._customer(existing)
             row = {"id": customer_id, "name": name, "billing_mode": billing_mode, "processor": processor, "vat_rate_bp": round(vat_rate * 10_000),
-                   "vat_basis": vat_basis, "region": region, "provider_credentials": canonical_json(creds), "cache_scope": cache_scope,
-                   "created_at": now_iso(), "mode": mode}
+                   "vat_basis": vat_basis, "region": str(region).strip().lower(), "provider_credentials": canonical_json(creds),
+                   "cache_scope": cache_scope, "terms_accepted_at": terms_accepted_at, "ai_disclosure_confirmed": 1,
+                   "prc_opt_in": int(bool(prc_opt_in)), "created_at": now_iso(), "mode": mode}
             tx.insert("customers", row)
             self.audit.record(tx, actor, "customer_registered", "customers", customer_id, after=row)
             return self._customer(row)
@@ -228,6 +242,8 @@ class Billing:
         out = dict(row)
         out["provider_credentials"] = loads(row["provider_credentials"], [])
         out["vat_rate"] = int(row["vat_rate_bp"]) / 10_000
+        out["ai_disclosure_confirmed"] = bool(row["ai_disclosure_confirmed"])
+        out["prc_opt_in"] = bool(row["prc_opt_in"])
         return out
 
     def customer(self, tx: Tx, customer_id: str) -> dict:

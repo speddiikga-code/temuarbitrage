@@ -78,7 +78,8 @@ terminal: completed, rejected, failed, cancelled
 ```
 
 One action per provider attempt (`inf:<request>:<attempt>`), created by `ops/router/service.py`. `verified` re-checks
-the mandate (provider, region, task type), the catalog row (available, terms), the per-request and daily caps and the
+the mandate (provider, region, task type, provider pre-disclosed in the privacy policy), the catalog row (available,
+terms, not a free tier), in live mode the registry's production-ready flag, the per-request and daily caps and the
 provider exposure; `reserved` holds the cap cost from the budget governor when the platform pays, and only a reason
 when the customer's own key pays. `completed` needs the provider's usage record: the booked cost is the record's
 count, funded from prepaid provider credits (1400) or supplier payables (2000) against inference cost (5020). A usage

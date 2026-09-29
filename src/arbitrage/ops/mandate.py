@@ -70,6 +70,9 @@ FIELDS: tuple[tuple[str, str, str, bool | str], ...] = (
     ("router", "platform_fee_rate", "rate", COMPUTE_ROUTER),        # fee on metered provider cost (platform_credits)
     ("router", "savings_share_rate", "rate", COMPUTE_ROUTER),       # share of verified savings (own_keys)
     ("router", "min_quality_score", "rate", COMPUTE_ROUTER),        # no route below this, whatever the customer asks
+    ("router", "terms_url", "str", COMPUTE_ROUTER),                 # platform terms every customer accepts (pass-down of provider policies)
+    ("router", "privacy_policy_url", "str", COMPUTE_ROUTER),        # privacy policy listing every foreign provider (개인정보 보호법 제28조의8)
+    ("router", "disclosed_providers", "str_list", COMPUTE_ROUTER),  # providers named in that policy; a provider is added here before the router
     ("goals", "target_realized_profit_krw", "krw", False),
 )
 
@@ -181,6 +184,10 @@ class Mandate:
 
     def permits_billing_mode(self, billing_mode: str) -> bool:
         return billing_mode in self.strings("router.billing_modes")
+
+    def provider_disclosed(self, provider: str) -> bool:
+        """The privacy policy names this provider (개인정보 보호법 제28조의8: foreign transfer disclosed before it happens)."""
+        return provider in self.strings("router.disclosed_providers")
 
     def summary(self) -> dict[str, Any]:
         return {

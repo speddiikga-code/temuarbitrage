@@ -65,6 +65,11 @@ class ComputeRouter:
         out["quality_score"] = None if row["quality_score_bp"] is None else int(row["quality_score_bp"]) / 10_000
         out["cache_hit"] = bool(row["cache_hit"])
         out["savings_verified"] = bool(row["savings_verified"])
+        intent = (out["intent"] or {}).get("intent") or {}
+        out["labels"] = {"ai_generated": True,                                  # AI Basic Act Art. 31: every output is labelled
+                         "human_review_required": bool(intent.get("high_risk")),   # high-risk domains need a qualified human
+                         "high_risk_domains": list(intent.get("high_risk") or []),
+                         "personal_info_detected": bool(intent.get("personal_info"))}
         return out
 
     def get(self, tx, request_id: str) -> dict:
@@ -113,7 +118,8 @@ class ComputeRouter:
                    "quality_min_bp": round(request.quality_min * 10_000), "latency_max_ms": request.latency_max_ms,
                    "cost_cap_krw": request.cost_cap_krw, "language": request.language or "", "prompt": request.prompt,
                    "context": request.context or "", "compressed_context": None, "max_output_tokens": request.max_output_tokens,
-                   "baseline_catalog_id": request.baseline_catalog_id, "metadata": canonical_json(request.metadata),
+                   "baseline_catalog_id": request.baseline_catalog_id, "residency": (request.residency or "").strip().lower() or None,
+                   "metadata": canonical_json(request.metadata),
                    "intent": "{}", "input_tokens_raw": 0, "input_tokens_sent": 0, "output_tokens": 0, "plan": "{}", "step": "received",
                    "status": "open", "cache_hit": 0, "cached_from": None, "provider_cost_krw": 0, "attempts_cost_krw": 0, "baseline_cost_krw": 0,
                    "savings_krw": 0, "savings_verified": 0, "charge_krw": 0, "fee_krw": 0, "tax_krw": 0, "quality_score_bp": None, "judge": "{}",
@@ -155,7 +161,7 @@ class ComputeRouter:
         declared = (row["intent"].get("intent") or {}).get("declared", True) if row["intent"] else True
         return RouteRequest(row["idempotency_key"], row["customer_id"], row["prompt"], row["context"], (row["task_type"] or None) if declared else None,
                             row["optimization"], row["quality_min"], row["latency_max_ms"], int(row["cost_cap_krw"]), row["language"] or None,
-                            int(row["max_output_tokens"]), row["baseline_catalog_id"], row["metadata"])
+                            int(row["max_output_tokens"]), row["baseline_catalog_id"], row.get("residency") or None, row["metadata"])
 
     # Layers 2-4
     def _compile(self, row: dict) -> None:
@@ -173,7 +179,7 @@ class ComputeRouter:
     def _deliver_from_cache(self, row: dict) -> bool:
         with self.db.transaction() as tx:
             customer = self.billing.customer(tx, row["customer_id"])
-            scope = "shared" if customer["cache_scope"] == "shared" else customer["id"]
+            scope = customer["id"]          # a cache hit is a repeat inside the same tenant only, never across customers
             hit = self.cache.lookup(tx, row["mode"], scope, row["task_type"], row["language"], row["prompt"], row["compressed_context"] or "",
                                     row["quality_min"])
             if hit is None:
@@ -190,10 +196,13 @@ class ComputeRouter:
     def _constraints(self, tx, row: dict, tokens_in: int) -> Constraints:
         m = self.mandate
         platform_pays = row["billing_mode"] == "platform_credits"
+        customer = self.billing.customer(tx, row["customer_id"])
         return Constraints(row["task_type"], row["quality_min"], int(row["cost_cap_krw"]), row["optimization"], self._fx_for(tx, row["mode"]),
                            self.fx_origin, int(row["max_output_tokens"]), m.strings("router.providers"), m.strings("router.permitted_regions"),
                            m.strings("router.permitted_task_types"), m.rate("router.min_quality_score"), row["latency_max_ms"],
-                           m.krw("router.max_request_cost_krw") if platform_pays else None)
+                           m.krw("router.max_request_cost_krw") if platform_pays else None,
+                           customer_country=str(customer["region"]).lower(), prc_opt_in=bool(customer["prc_opt_in"]),
+                           disclosed_providers=m.strings("router.disclosed_providers"), residency=row.get("residency") or None)
 
     def _fx_for(self, tx, mode: str) -> float:
         rates = {r["currency"] for r in self.catalog.list(tx, mode)}
@@ -356,6 +365,14 @@ class ComputeRouter:
             out.append(f"task type {row['task_type']} is not permitted")
         if not catalog_row["available"] or not catalog_row["terms_permit"]:
             out.append(f"{route.catalog_id} is unavailable or its terms do not permit this use")
+        if catalog_row.get("free_tier"):
+            out.append(f"{route.catalog_id} is a free tier; it never carries customer traffic")
+        if not m.provider_disclosed(route.provider):
+            out.append(f"provider {route.provider} is not pre-disclosed in the privacy policy")
+        if row["mode"] == LIVE:
+            entry = self.core.registry.get(tx, route.provider)
+            if entry is None or not entry.get("production_ready"):
+                out.append(f"registry does not call {route.provider} production-ready (status live, connected, verified operation)")
         if platform_pays:
             if cap > m.krw("router.max_request_cost_krw"):
                 out.append(f"cap {cap:,} KRW exceeds the mandate's per-request cost {m.krw('router.max_request_cost_krw'):,} KRW")
@@ -393,10 +410,15 @@ class ComputeRouter:
 
     def _execution(self, tx, row, attempt, stage, route, action, output, t_in, t_out, cost, funding, fx, error, reference=None,
                    latency=None, execution_id=None) -> dict:
+        catalog_row = self.catalog.get(tx, route.catalog_id) or {}
+        list_price = {"input_micros_per_mtok": catalog_row.get("input_micros_per_mtok"), "output_micros_per_mtok": catalog_row.get("output_micros_per_mtok"),
+                      "currency": catalog_row.get("currency"), "multiplier": 1.0, "verified": bool(catalog_row.get("price_verified")),
+                      "region": route.region, "data_residency": catalog_row.get("data_residency")}
         x = {"id": execution_id or new_id("exec"), "request_id": row["id"], "attempt": attempt, "stage": stage, "catalog_id": route.catalog_id,
              "action_id": action.id if action else None, "tokens_in": t_in, "tokens_out": t_out, "cost_krw": cost, "funding": funding,
              "fx_rate": str(fx), "latency_ms": latency, "quality_score_bp": None, "passed": 1 if stage == "preprocess" and not error else None,
-             "provider_reference": reference, "output": output, "error": error, "created_at": now_iso(), "mode": row["mode"]}
+             "provider_reference": reference, "list_price": canonical_json(list_price), "output": output, "error": error,
+             "created_at": now_iso(), "mode": row["mode"]}
         tx.insert("route_executions", x)
         self._set(tx, row["id"], {"attempts_cost_krw": int(row["attempts_cost_krw"]) + cost, "last_error": error})
         row["attempts_cost_krw"] = int(row["attempts_cost_krw"]) + cost
@@ -421,7 +443,8 @@ class ComputeRouter:
                 delivered_cost = int(x["cost_krw"]) + self._preprocess_cost(tx, row["id"], int(x["attempt"]))
                 self._set(tx, row["id"], {"result": x["output"], "quality_score_bp": round(verdict.score * 10_000),
                                           "judge": canonical_json({"method": verdict.method, "score": verdict.score, "reasons": list(verdict.reasons),
-                                                                   "reference": verdict.reference, "execution": x["id"]}),
+                                                                   "reference": verdict.reference, "execution": x["id"],
+                                                                   "cost_krw": int(getattr(verdict, "cost_krw", 0) or 0), "source": getattr(verdict, "source", None)}),
                                           "provider_cost_krw": delivered_cost, "output_tokens": int(x["tokens_out"]), "step": "judged", "last_error": None})
                 return True
             self._set(tx, row["id"], {"last_error": f"{x['catalog_id']} failed the judge: " + "; ".join(verdict.reasons)})
@@ -505,7 +528,7 @@ class ComputeRouter:
         with self.db.transaction() as tx:
             customer = self.billing.customer(tx, row["customer_id"])
             if not row["cache_hit"] and row["result"] and row["quality_score"] is not None:
-                scope = "shared" if customer["cache_scope"] == "shared" else customer["id"]
+                scope = customer["id"]          # a cache hit is a repeat inside the same tenant only, never across customers
                 self.cache.store(tx, row["mode"], scope, row["task_type"], row["language"], row["prompt"], row["compressed_context"] or "",
                                  row["id"], row["result"], row["quality_score"])
             self._set(tx, row["id"], {"step": "delivered"})

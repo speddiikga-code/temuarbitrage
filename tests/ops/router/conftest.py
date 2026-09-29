@@ -65,8 +65,11 @@ def settle_topup(router, customer_id: str, amount: int, key: str = "topup:1", fe
     return top
 
 
-def credits_customer(router, customer_id="acme", amount=50_000, vat=0.10):
-    router.billing.register_customer(SIM, customer_id, "Acme", "platform_credits", "simulated:billing", vat, "kr")
+ACCEPTED = dict(terms_accepted_at="2026-09-28T00:00:00+00:00", ai_disclosure_confirmed=True)
+
+
+def credits_customer(router, customer_id="acme", amount=50_000, vat=0.10, region="kr", **kw):
+    router.billing.register_customer(SIM, customer_id, "Acme", "platform_credits", "simulated:billing", vat, region, **{**ACCEPTED, **kw})
     if amount:
         settle_topup(router, customer_id, amount)
     return customer_id
@@ -74,5 +77,5 @@ def credits_customer(router, customer_id="acme", amount=50_000, vat=0.10):
 
 def keys_customer(router, customer_id="byok", providers=("simulated:provider-a", "simulated:provider-b")):
     router.billing.register_customer(SIM, customer_id, "BYOK Ltd", "own_keys", "simulated:billing", 0.10, "kr",
-                                     [{"provider": p, "credential_ref": "CUSTOMER_KEY_" + p.split("-")[-1].upper()} for p in providers])
+                                     [{"provider": p, "credential_ref": "CUSTOMER_KEY_" + p.split("-")[-1].upper()} for p in providers], **ACCEPTED)
     return customer_id

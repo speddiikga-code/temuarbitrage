@@ -11,7 +11,10 @@ CREATE TABLE IF NOT EXISTS customers (
   vat_basis TEXT,
   region TEXT NOT NULL,
   provider_credentials TEXT NOT NULL DEFAULT '[]',  -- [{provider, credential_ref}]: environment-variable names, never values
-  cache_scope TEXT NOT NULL DEFAULT 'customer',     -- customer (only this customer's results) | shared
+  cache_scope TEXT NOT NULL DEFAULT 'customer',     -- always customer: a cache hit is a repeat inside the same tenant only
+  terms_accepted_at TEXT NOT NULL,     -- when the customer accepted the platform terms that pass down each provider's usage policy
+  ai_disclosure_confirmed INTEGER NOT NULL DEFAULT 0,  -- the customer's product discloses AI at session start and labels outputs
+  prc_opt_in INTEGER NOT NULL DEFAULT 0,               -- tenant opted in to PRC-hosted endpoints (non-personal data only)
   created_at TEXT NOT NULL,
   mode TEXT NOT NULL
 );
@@ -31,6 +34,9 @@ CREATE TABLE IF NOT EXISTS model_catalog (
   quality TEXT NOT NULL DEFAULT '{}',      -- {task_type: 0..1} seeded from evidence, then learned from judge verdicts
   quality_samples TEXT NOT NULL DEFAULT '{}',
   available INTEGER NOT NULL DEFAULT 1,
+  customer_countries TEXT NOT NULL DEFAULT '[]',  -- countries whose end users the provider supports; screened per customer
+  data_residency TEXT NOT NULL DEFAULT 'unknown',  -- where the endpoint is hosted: global, us, kr, eu, cn ...
+  free_tier INTEGER NOT NULL DEFAULT 0,       -- a free tier never carries customer traffic
   terms_permit INTEGER NOT NULL DEFAULT 0, -- the provider's terms allow routing customer work through it (eligibility work)
   evidence TEXT NOT NULL DEFAULT '{}',     -- {source, url, date, verified}: where the price came from; unverified until sourced
   updated_at TEXT NOT NULL,
@@ -48,6 +54,7 @@ CREATE TABLE IF NOT EXISTS routed_requests (
   quality_min_bp INTEGER NOT NULL,
   latency_max_ms INTEGER,
   cost_cap_krw BIGINT NOT NULL,        -- the customer's cap on provider cost for this request
+  residency TEXT,                      -- customer-selected provider region; empty = cheapest sanctioned route
   language TEXT NOT NULL,              -- answer language
   prompt TEXT NOT NULL,
   context TEXT NOT NULL DEFAULT '',
@@ -101,6 +108,7 @@ CREATE TABLE IF NOT EXISTS route_executions (
   quality_score_bp INTEGER,
   passed INTEGER,
   provider_reference TEXT,
+  list_price TEXT,                     -- {input_micros_per_mtok, output_micros_per_mtok, currency, multiplier, verified} at call time
   output TEXT,
   error TEXT,
   created_at TEXT NOT NULL,

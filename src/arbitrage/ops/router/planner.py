@@ -47,6 +47,10 @@ class Constraints:
     quality_floor: float
     latency_max_ms: int | None = None
     platform_request_cap_krw: int | None = None   # mandate cap when the platform pays; None when the customer's key pays
+    customer_country: str = ""                       # end users are screened by country against the provider's supported list
+    prc_opt_in: bool = False                         # tenant opted in to PRC-hosted endpoints
+    disclosed_providers: tuple[str, ...] | None = None   # providers named in the privacy policy; None = not enforced (unit tests)
+    residency: str | None = None                     # customer-selected region; None = cheapest sanctioned route
 
     @property
     def threshold(self) -> float:
@@ -123,13 +127,29 @@ def _route(row: dict, task_type: str, tokens_in: int, c: Constraints) -> Route:
                  cost_mkrw(tokens_in, expected_out, row, c.fx_rate))
 
 
-def compliance_problems(row: dict, task_type: str, tokens_in: int, c: Constraints) -> list[str]:
-    """Every reason this catalog row may not serve the request. Empty means it may be a candidate."""
+def compliance_problems(row: dict, task_type: str, tokens_in: int, c: Constraints, intent: Intent | None = None) -> list[str]:
+    """Every reason this catalog row may not serve the request. Empty means it may be a candidate.
+    The rules come from docs/provider_terms.md section 3 (task 13): terms, free tiers, pre-disclosure, end-user country,
+    PRC hosting, customer-selected residency."""
     out: list[str] = []
     if not row["available"]:
         out.append("marked unavailable")
     if not row["terms_permit"]:
         out.append("provider terms do not permit routing customer work through this model")
+    if row.get("free_tier"):
+        out.append("a free tier never carries customer traffic (inputs improve the provider's models by default)")
+    if c.disclosed_providers is not None and row["provider"] not in c.disclosed_providers:
+        out.append(f"provider {row['provider']} is not pre-disclosed in the privacy policy (개인정보 보호법 제28조의8)")
+    countries = row.get("customer_countries") or []
+    if c.customer_country and c.customer_country not in countries:
+        out.append(f"provider does not support end users in {c.customer_country} (supported: {', '.join(countries) or 'none listed'})")
+    if row.get("data_residency") == "cn":
+        if not c.prc_opt_in:
+            out.append("PRC-hosted endpoint needs the tenant's opt-in")
+        if intent is not None and intent.personal_info:
+            out.append("PRC-hosted endpoint never receives personal information (detected: " + ", ".join(intent.personal_info) + ")")
+    if c.residency and row["region"] != c.residency:
+        out.append(f"customer selected residency {c.residency}; this route runs in {row['region']}")
     if row["provider"] not in c.providers_allowed:
         out.append(f"provider {row['provider']} is not in the mandate's providers")
     if row["region"] not in c.regions_allowed:
@@ -163,7 +183,7 @@ def plan(intent: Intent, tokens_in: int, rows: list[dict], c: Constraints) -> Pl
     compliant: list[Route] = []      # passed the compliance gate: may preprocess (Layer 8) even below the final threshold
     candidates: list[Route] = []     # compliant and within quality, latency and cost: may answer
     for row in rows:
-        problems = compliance_problems(row, intent.task_type, tokens_in, c)
+        problems = compliance_problems(row, intent.task_type, tokens_in, c, intent)
         if problems:
             p.rejected[row["id"]] = problems
             continue
@@ -191,6 +211,8 @@ def plan(intent: Intent, tokens_in: int, rows: list[dict], c: Constraints) -> Pl
     p.ladder = [chosen] if c.optimization == "maximum" else [chosen] + stronger
     if not all(r.price_verified for r in p.ladder):
         p.notes.append("one or more routes are priced from unverified evidence; the provider's usage record decides the real cost")
+    p.notes.append(f"residency {c.residency}: customer-selected" if c.residency else
+                   f"region {chosen.region}: cheapest sanctioned route; residency is a customer-selected option, never silent")
     p.decomposition = _decompose(intent, chosen, compliant, by_id, c)
     if p.decomposition:
         p.notes.append(f"long context: {p.decomposition.chunks} chunk(s) preprocessed on {p.decomposition.preprocess.catalog_id}, "

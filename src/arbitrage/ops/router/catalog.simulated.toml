@@ -16,6 +16,8 @@ output_micros_per_mtok = 1250000    # 1.25 per million output tokens, placeholde
 currency = "USD"
 latency_ms = 400
 quality = {chat = 0.75, classification = 0.8, extraction = 0.72, summarization = 0.7, translation = 0.7, coding = 0.55, research = 0.5}
+customer_countries = ["kr", "us"]
+data_residency = "us"
 terms_permit = true
 evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-a", date = "2026-09-28", verified = false}
 
@@ -32,6 +34,8 @@ output_micros_per_mtok = 15000000   # 15.00 per million output tokens, placehold
 currency = "USD"
 latency_ms = 1200
 quality = {chat = 0.92, classification = 0.93, extraction = 0.93, summarization = 0.9, translation = 0.9, coding = 0.9, reasoning = 0.9, research = 0.85}
+customer_countries = ["kr", "us"]
+data_residency = "us"
 terms_permit = true
 evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-a", date = "2026-09-28", verified = false}
 
@@ -48,6 +52,8 @@ output_micros_per_mtok = 4000000    # 4.00 per million output tokens, placeholde
 currency = "USD"
 latency_ms = 700
 quality = {chat = 0.85, classification = 0.88, extraction = 0.85, summarization = 0.84, translation = 0.86, coding = 0.75, reasoning = 0.7}
+customer_countries = ["kr", "us"]
+data_residency = "kr"
 terms_permit = true
 evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}
 
@@ -64,6 +70,8 @@ output_micros_per_mtok = 3000000
 currency = "USD"
 latency_ms = 900
 quality = {chat = 0.85, classification = 0.88, extraction = 0.85, summarization = 0.84, translation = 0.86, coding = 0.75, reasoning = 0.7}
+customer_countries = ["kr", "us"]
+data_residency = "eu"
 terms_permit = true
 evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}
 
@@ -80,5 +88,44 @@ output_micros_per_mtok = 500000
 currency = "USD"
 latency_ms = 500
 quality = {chat = 0.9, classification = 0.9, extraction = 0.9, summarization = 0.9, translation = 0.9, coding = 0.9, reasoning = 0.9}
+customer_countries = ["kr", "us"]
+data_residency = "us"
 terms_permit = false
 evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}
+
+[[models]]
+id = "simulated:provider-b:medium:cn"
+provider = "simulated:provider-b"
+model = "medium"
+region = "cn"
+tier = 1
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding", "reasoning"]
+context_window = 128000
+input_micros_per_mtok = 400000      # cheapest paid host of these weights, placeholder; PRC-hosted, so gated on opt-in and no personal data
+output_micros_per_mtok = 2000000
+currency = "USD"
+latency_ms = 800
+quality = {chat = 0.85, classification = 0.88, extraction = 0.85, summarization = 0.84, translation = 0.86, coding = 0.75, reasoning = 0.7}
+customer_countries = ["kr", "us"]
+data_residency = "cn"
+terms_permit = true
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-b", date = "2026-09-28", verified = false}
+
+[[models]]
+id = "simulated:provider-a:free:us"
+provider = "simulated:provider-a"
+model = "free"
+region = "us"
+tier = 0
+task_types = ["chat", "classification", "extraction", "summarization", "translation", "coding"]
+context_window = 32000
+input_micros_per_mtok = 0           # free tier: inputs improve the provider's models by default; never carries customer traffic
+output_micros_per_mtok = 0
+currency = "USD"
+latency_ms = 900
+quality = {chat = 0.7, classification = 0.75, extraction = 0.7, summarization = 0.7, translation = 0.7, coding = 0.5}
+customer_countries = ["kr", "us"]
+data_residency = "us"
+free_tier = true
+terms_permit = true
+evidence = {source = "placeholder", url = "https://example.invalid/simulated-provider-a", date = "2026-09-28", verified = false}

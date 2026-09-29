@@ -13,7 +13,7 @@ from arbitrage.errors import ArbitrageError
 
 from .adapters import SimulatedCarrier, SimulatedChannel, SimulatedProcessor, SimulatedSupplier
 from .charters import load_charters, store_charters
-from .common import LIVE, SIMULATED
+from .common import LIVE, SIMULATED, now_iso
 from .core import build
 from .dashboard import dashboard, readiness
 from .jobs import install_schedules, register_standard
@@ -21,6 +21,7 @@ from .mandate import COMPUTE_ROUTER
 from .orchestrator import Orchestrator
 from .router.adapters import SimulatedJudge, simulated_router_adapters
 from .router.jobs import install_router_schedules, register_router
+from .router.providers import ProviderRules
 from .router.judge import QualityJudge
 from .router.service import build_router
 from .workflows import WorkflowEngine
@@ -77,7 +78,8 @@ def _router(args, core, engine):
             router.catalog.load_file(tx, resources.files("arbitrage.ops").joinpath("router/catalog.simulated.toml"), SIMULATED)
         catalog_file = Path(os.environ.get("OPS_MODEL_CATALOG", "integrations/model_catalog.toml"))
         if args.mode == LIVE and catalog_file.exists():
-            router.catalog.load_file(tx, catalog_file, LIVE)
+            # a live row is accepted only when the integration registry (task 13) clears its provider
+            router.catalog.load_file(tx, catalog_file, LIVE, rules=ProviderRules.from_file(Path(os.environ.get("OPS_REGISTRY", "integrations/registry.toml"))))
     return router
 
 
@@ -233,7 +235,8 @@ def cmd_router_catalog(args):
         ev = r["evidence"]
         print(f"{r['id']}: tier {r['tier']}, {r['currency']} {r['input_micros_per_mtok'] / 1e6:.2f}/{r['output_micros_per_mtok'] / 1e6:.2f} per MTok, "
               f"{r['latency_ms']} ms, terms {'ok' if r['terms_permit'] else 'NOT permitted'}, "
-              f"price {'verified' if r['price_verified'] else 'UNVERIFIED'} ({ev.get('source')}, {ev.get('date')}), quality {r['quality']}")
+              f"price {'verified' if r['price_verified'] else 'UNVERIFIED'} ({ev.get('source')}, {ev.get('date')}), quality {r['quality']}, "
+              f"hosted {r['data_residency']}, end users {','.join(r['customer_countries'])}{', FREE TIER (never routed)' if r['free_tier'] else ''}")
     return 0
 
 
@@ -267,7 +270,8 @@ def cmd_router_demo(args):
         core.books.contribute_capital(tx, SIMULATED, 1_000_000, "simulated:bank", "router-demo:capital")
     billing = core.adapters["simulated:billing"]
     # a prepaid customer tops up; the balance is spendable only once the processor settles it
-    router.billing.register_customer(SIMULATED, "demo-credits", "Demo (platform credits)", "platform_credits", "simulated:billing", 0.10, "kr")
+    accepted = dict(terms_accepted_at=now_iso(), ai_disclosure_confirmed=True)
+    router.billing.register_customer(SIMULATED, "demo-credits", "Demo (platform credits)", "platform_credits", "simulated:billing", 0.10, "kr", **accepted)
     top = router.billing.topup(SIMULATED, "demo-credits", 100_000, "router-demo:topup")
     auth = billing.authorize(top.id, 100_000, "KRW")
     router.billing.apply_event({"source": auth.source, "kind": "authorization", "reference": auth.reference, "mode": SIMULATED, "action_id": top.id, "amount": 100_000})
@@ -277,7 +281,7 @@ def cmd_router_demo(args):
                                 "action_id": top.id, "amount": 100_000, "processor_fee": 3_000})
     # an own-keys customer pays the provider directly and is billed a share of verified savings, or a fee on metered cost
     router.billing.register_customer(SIMULATED, "demo-keys", "Demo (own keys)", "own_keys", "simulated:billing", 0.10, "kr",
-                                     [{"provider": "simulated:provider-a", "credential_ref": "DEMO_PROVIDER_A_KEY"}])
+                                     [{"provider": "simulated:provider-a", "credential_ref": "DEMO_PROVIDER_A_KEY"}], **accepted)
     long_context = "\n\n".join(f"Section {i}: invoice {1000 + i} from supplier {i % 7} totals {i * 137} won, due in {i % 30} days. " * 6 for i in range(60))
     prompt = "Extract every invoice number and total as a JSON list"
     adapters = core.adapters
