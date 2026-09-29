@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 
 
@@ -53,6 +54,12 @@ class Opportunity:
     market_low: int
     quotes: dict[str, Quote]
     notes: list[str] = field(default_factory=list)
+
+    @property
+    def id(self) -> str:
+        """Stable across scans: platform + product id, or a hash of the URL."""
+        key = self.source.product_id or hashlib.sha1(self.source.url.encode("utf-8")).hexdigest()[:12]
+        return f"{self.source.platform}:{key}"
 
     @property
     def best(self) -> Quote:

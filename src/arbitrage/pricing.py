@@ -28,6 +28,13 @@ class Policy:
     duty_free_usd: float = 150.0
     tariff_rate: float = 0.08
     import_vat_rate: float = 0.10
+    # Why the goods cross the border. Goods bought to resell must be declared and taxed whatever they cost
+    # (관세청 guidance, checked 2026-09-27), so the personal-use USD 150 exemption applies to personal_use only.
+    # Samples get no exemption either until customs evidence says otherwise.
+    import_basis: str = "commercial_resale"
+
+
+IMPORT_BASES = ("commercial_resale", "personal_use", "genuine_sample")
 
 
 def ceil_to(value: float, step: int = 100) -> int:
@@ -40,21 +47,34 @@ def floor_to(value: float, step: int = 100) -> int:
 
 
 def landed_cost(offer: Offer, fx: FxRates, policy: Policy) -> tuple[int, list[str]]:
-    """KRW it costs to get `offer` to a Korean customer, plus notes on what was assumed."""
+    """KRW it costs to get `offer` to a Korean customer, plus notes on what was assumed.
+
+    Duty and VAT are estimates at the policy's flat rates until the product's HS classification is verified;
+    the notes say so. Only `import_basis = "personal_use"` under the duty-free limit yields zero tax.
+    """
     notes: list[str] = []
     goods = fx.to_krw(offer.price + offer.shipping, offer.currency)
     cost = goods
     if offer.currency.upper() != "KRW":
         cost *= 1 + policy.fx_buffer
     if offer.cross_border:
+        if policy.import_basis not in IMPORT_BASES:
+            raise ConfigError(f"policy.import_basis must be one of {', '.join(IMPORT_BASES)}, not {policy.import_basis!r}")
         value_usd = goods / fx.rate("USD")
-        if value_usd > policy.duty_free_usd:
+        if policy.import_basis == "personal_use" and value_usd <= policy.duty_free_usd:
+            notes.append(f"personal-use import under ${policy.duty_free_usd:g}: no duty assumed (not valid for resale)")
+        else:
             duty = goods * policy.tariff_rate
             vat = (goods + duty) * policy.import_vat_rate
             cost += duty + vat
+            why = {
+                "commercial_resale": "commercial import for resale: declared and taxed at any value",
+                "genuine_sample": "sample import: no exemption assumed without customs evidence",
+                "personal_use": f"over ${policy.duty_free_usd:g} duty-free limit (${value_usd:,.0f})",
+            }[policy.import_basis]
             notes.append(
-                f"over ${policy.duty_free_usd:g} duty-free limit (${value_usd:,.0f}): "
-                f"~₩{duty + vat:,.0f} duty+VAT added"
+                f"{why}: ~₩{duty + vat:,.0f} duty+VAT estimated at {policy.tariff_rate:.0%} + "
+                f"{policy.import_vat_rate:.0%} (HS classification unverified)"
             )
     return math.ceil(cost), notes
 

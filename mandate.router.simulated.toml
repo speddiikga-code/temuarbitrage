@@ -1,0 +1,63 @@
+# NOT the owner's mandate. Test numbers for mode = "simulated" runs of the GlobalCompute Router
+# (`arbitrage-ops --mode simulated router demo`, tests). A mandate with environment = "simulated" can never
+# authorize a live action, whatever its numbers.
+
+[mandate]
+schema_version = 1
+environment = "simulated"
+
+[business]
+domain = "compute_router"
+operating_country = "KR"
+business_identity = "SIMULATED router operator"
+target_markets = ["KR", "global"]
+
+[connections]
+payment_processors = ["simulated:billing"]
+
+[funding]
+funding_sources = ["simulated:bank"]
+payout_destinations = ["simulated:bank"]
+initial_capital_krw = 1000000
+authorized_operating_expenses_krw = 50000
+
+[limits]
+max_transaction_krw = 200000
+max_daily_spend_krw = 400000
+max_total_exposure_krw = 600000
+max_cumulative_loss_krw = 150000
+
+[reserves]
+min_cash_reserve_krw = 200000
+refund_reserve_rate = 0.05
+refund_reserve_days = 14
+dispute_reserve_rate = 0.01
+
+[reinvestment]
+reinvestment_rate = 0.5
+
+[budgets]
+ai_credit_budget = 1000
+infrastructure_budget_krw = 30000
+
+[permissions]
+external_actions = ["call_providers", "prepay_providers", "collect_payment", "issue_refund", "reinvest"]
+
+[router]
+providers = ["simulated:provider-a", "simulated:provider-b"]
+permitted_regions = ["us", "kr", "cn"]      # cn rows are PRC-hosted: gated on the tenant opt-in and the personal-information classifier
+permitted_task_types = ["coding", "translation", "extraction", "reasoning", "classification", "research", "summarization", "chat"]
+billing_modes = ["own_keys", "platform_credits"]
+max_request_cost_krw = 5000
+max_daily_inference_spend_krw = 100000
+max_provider_prepaid_krw = 300000
+max_provider_exposure_krw = 200000
+platform_fee_rate = 0.2
+savings_share_rate = 0.25
+min_quality_score = 0.6
+terms_url = "https://example.invalid/simulated-terms"
+privacy_policy_url = "https://example.invalid/simulated-privacy"
+disclosed_providers = ["simulated:provider-a", "simulated:provider-b"]
+
+[goals]
+target_realized_profit_krw = 1000000

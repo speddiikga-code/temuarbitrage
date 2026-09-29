@@ -1,0 +1,52 @@
+# NOT the owner's mandate. Test numbers for mode = "simulated" runs (`arbitrage-ops demo`, tests).
+# The policy controller never lets a mandate with environment = "simulated" authorize a live action.
+
+[mandate]
+schema_version = 1
+environment = "simulated"
+
+[business]
+domain = "ecommerce"
+operating_country = "KR"
+business_identity = "SIMULATED seller"
+target_markets = ["KR"]
+
+[connections]
+storefronts = ["simulated:storefront"]
+marketplaces = ["simulated:naver"]
+suppliers = ["simulated:aliexpress"]
+payment_processors = ["simulated:naverpay"]
+
+[funding]
+funding_sources = ["simulated:bank"]
+payout_destinations = ["simulated:bank"]
+initial_capital_krw = 1000000
+authorized_operating_expenses_krw = 50000
+
+[limits]
+max_transaction_krw = 200000
+max_daily_spend_krw = 400000
+max_total_exposure_krw = 600000
+max_cumulative_loss_krw = 150000
+max_inventory_value_krw = 500000
+max_sku_exposure_krw = 250000
+
+[reserves]
+min_cash_reserve_krw = 200000
+refund_reserve_rate = 0.05
+refund_reserve_days = 14
+dispute_reserve_rate = 0.01
+
+[reinvestment]
+reinvestment_rate = 0.5
+
+[budgets]
+ai_credit_budget = 1000
+infrastructure_budget_krw = 30000
+
+[permissions]
+product_categories = ["kitchen", "car-accessories"]
+external_actions = ["purchase_inventory", "purchase_samples", "pay_supplier", "buy_shipping", "collect_payment", "issue_refund", "reinvest", "list_products"]
+
+[goals]
+target_realized_profit_krw = 1000000

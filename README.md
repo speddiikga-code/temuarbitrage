@@ -8,7 +8,7 @@ Phase 1 of a dropship setup (buy from the supplier only after a customer orders)
 ```
 supplier offers ──► find the same product on the Korean market ──► landed cost vs. market price ──► ranked CSV
 (AliExpress API,     (Naver Shopping API: prices across            (fees, ads, returns, FX,
- CSV for anything     Korean malls)                                  $150 duty-free check)
+ CSV for anything     Korean malls)                                  duty & VAT on resale imports)
  else)
 ```
 
@@ -44,12 +44,13 @@ arbitrage price --cost 5.2 --currency USD --shipping 1.5 --market-price 19900
 ```
 
 `scan` prints the best opportunities and writes every match to `opportunities.csv`
-(opens correctly in Excel). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
+(opens correctly in Excel). Add `--json scan.json` for machine-readable output (schema in
+[AGENTS.md](AGENTS.md)). Useful flags: `--sell-on naver`, `--min-margin 0.2`,
 `--all` (include thin margins), `--no-images`, `--config my.toml`.
 
 ### CSV suppliers
 
-Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,cross_border`.
+Required columns are `title,price,url`. Optional columns are `platform,currency,shipping,image_url,brand,model,product_id,cross_border`. Give `product_id` so an item keeps the same id across scans even if its URL changes.
 `cross_border` defaults to true unless the currency is KRW.
 
 ```csv
@@ -71,7 +72,7 @@ Title-only matching is strict on purpose. Generic goods mostly match through ima
 
 ```
 price for margin = landed cost ÷ (1 − marketplace fee − ads − returns − margin)
-landed cost      = (item + shipping) × FX × (1 + FX buffer) [+ duty & VAT above $150]
+landed cost      = (item + shipping) × FX × (1 + FX buffer) + duty & VAT (estimated; see import_basis)
 ```
 
 The tool lists at the cheapest matched competitor's price, or below it with `undercut`, and calls the product viable when
@@ -99,7 +100,39 @@ net margin ≥ `target_margin`. Defaults are in `src/arbitrage/default.toml`:
 3. List on Coupang (WING Open API) and Naver (Commerce API). Both require calls from a registered fixed IP, so this runs on a Seoul server.
 4. Order sync: pull orders + 개인통관고유부호, create purchase tasks, push tracking numbers back.
 
+## Operating core (no live spending yet)
+
+`src/arbitrage/ops` is the part that will hold money once accounts exist: a mandate file that fails closed
+while any field is `"pending"`, a double-entry ledger, a budget governor with atomic reservations, an action gateway
+whose state machines need the counterparty's confirmation before anything is booked, pauses, an audit chain and a
+scheduler. Today it has only simulated adapters. Try it without spending anything:
+
+```bash
+arbitrage-ops --mode simulated migrate
+arbitrage-ops --mode simulated demo     # buys, sells, ships, settles: all labelled SIMULATED
+arbitrage-ops status                    # live books: empty until the mandate and accounts exist
+```
+
+Design, schema, state machines, procedures, the dashboard API and the readiness report are in [docs/ops/](docs/ops/).
+
+## GlobalCompute Router (the current business, simulated only)
+
+On 2026-09-28 the owner switched the business the core runs from dropship arbitrage to routing AI inference: one
+request in, the cheapest route that meets the customer's quality bar and every compliance rule out. `mandate.toml`
+says `business.domain = "compute_router"`; `src/arbitrage/ops/router` adds the intent compiler, compressor, model
+catalog with price evidence, cost-aware planner, semantic cache, quality judge and two billing modes on top of the
+same ledger, gateway and policy. It never routes around provider terms, regions or pricing. No customer, provider
+account or live request exists; see [docs/ops/router.md](docs/ops/router.md).
+
+```bash
+arbitrage-ops --mode simulated router demo      # three simulated requests, all labelled SIMULATED
+arbitrage-ops --mode simulated router catalog   # every price marked UNVERIFIED
+```
+
 ## Development
+
+Two agents work on this repo in parallel: read [AGENTS.md](AGENTS.md) (rules, code owners, contracts)
+and [TASKS.md](TASKS.md) (who is doing what) first.
 
 ```bash
 pip install -e ".[dev]"

@@ -1,0 +1,163 @@
+# Agent charters: what each specialist agent does, with what, under which limits. Agents propose through the
+# services; none of them can execute a payment, change a limit or touch the ledger directly (no "execute:*"
+# permission exists). The quality evaluator is separate from every proposer and may not propose changes.
+# Credits are the unit of AI spend the orchestrator meters against the mandate's ai_credit_budget.
+
+schema_version = 1
+
+[defaults]
+max_concurrency = 2
+max_retries = 2
+max_delegation_depth = 2
+deadline_minutes = 120
+credit_allowance = 50
+
+[[charters]]
+role = "market_research"
+task = "Find product demand and competition in the Korean market for a category or keyword."
+inputs = ["category or keyword", "scan JSON from the scanner", "sourced market prices (source, URL, date)"]
+outputs = ["demand memo with sourced prices and dates", "candidate SKUs ranked by evidence quality"]
+tools = ["arbitrage scan", "sourced price lookups", "evidence store"]
+permissions = ["read:scan", "read:registry", "propose:experiment"]
+deadline_minutes = 180
+credit_allowance = 60
+success_metric = "Candidates that later pass unit economics and sell, per credit spent."
+termination_condition = "Memo delivered with every price sourced, or no candidate meets the evidence bar."
+
+[[charters]]
+role = "platform_eligibility"
+task = "Keep the integration registry current: what each platform permits, requires and supports."
+inputs = ["integrations/registry.toml", "official platform terms and Korean regulations"]
+outputs = ["registry entries with sources and dates", "list of manual dependencies per platform"]
+tools = ["web research on official sources", "registry loader"]
+permissions = ["read:registry", "propose:registry_change"]
+deadline_minutes = 240
+credit_allowance = 60
+success_metric = "Zero live actions blocked or reversed by an unknown platform rule."
+termination_condition = "Every connected or planned platform has a sourced entry checked within 30 days."
+
+[[charters]]
+role = "product_discovery"
+task = "Turn ranked opportunities into supplier-verified candidates: quotes, stock, delivery terms, quality evidence."
+inputs = ["scan JSON", "compliance filter output", "supplier quotes"]
+outputs = ["purchase proposals with quote, import basis, duty estimate, freight quote and price evidence"]
+tools = ["arbitrage scan", "supplier adapters (quote only)", "evidence store"]
+permissions = ["read:scan", "read:registry", "propose:purchase", "propose:sample"]
+credit_allowance = 60
+success_metric = "Share of proposals that pass verification and reach a positive realized margin."
+termination_condition = "Proposals submitted for the shortlist, or the shortlist is exhausted."
+
+[[charters]]
+role = "unit_economics"
+task = "Price each candidate after fees, ads, returns, FX and customs, using arbitrage.pricing; mark what is unverified."
+inputs = ["landed cost inputs", "channel fee tables", "sourced market prices", "returns and dispute rates"]
+outputs = ["quotes per channel with margin, break-even and evidence flags"]
+tools = ["arbitrage.pricing", "ledger metrics (read)"]
+permissions = ["read:scan", "read:ledger", "propose:price"]
+credit_allowance = 40
+success_metric = "Realized margin within 3 points of the quoted margin on closed orders."
+termination_condition = "Every candidate priced with its assumptions listed."
+
+[[charters]]
+role = "procurement"
+task = "Verify, reserve and place approved purchases; reconcile ambiguous payments; track shipments to receipt."
+inputs = ["verified purchase proposals", "budget headroom", "supplier confirmations"]
+outputs = ["placed purchases with confirmation references", "receiving records"]
+tools = ["purchasing service", "supplier adapters", "reconciliation"]
+permissions = ["read:registry", "read:ledger", "propose:purchase", "request:reconciliation"]
+max_concurrency = 1
+credit_allowance = 40
+success_metric = "Purchases received on time at or under the verified quote; zero unreconciled payments older than a day."
+termination_condition = "Every approved proposal is placed, rejected or parked for reconciliation."
+
+[[charters]]
+role = "catalog_localization"
+task = "Write accurate Korean listings: title, bullets, delivery promise, return terms, certification statement."
+inputs = ["supplier product data (API only)", "certification evidence per SKU", "channel listing rules"]
+outputs = ["listing proposals with certification evidence and import mode"]
+tools = ["listing service", "translation and copy tools", "evidence store"]
+permissions = ["read:scan", "propose:listing"]
+credit_allowance = 40
+success_metric = "Listings accepted by the channel first time; return rate for 'not as described' under 2%."
+termination_condition = "Every approved SKU has a verified listing proposal."
+
+[[charters]]
+role = "advertising_experiments"
+task = "Run bounded acquisition and conversion experiments with a hypothesis, cap, period and stop rule."
+inputs = ["listing performance", "budget headroom", "experiment history"]
+outputs = ["experiment proposals with max cost, observation period, success criterion and stop condition", "results"]
+tools = ["advertising adapters", "ledger metrics (read)"]
+permissions = ["read:ledger", "propose:experiment", "propose:advertising"]
+credit_allowance = 40
+success_metric = "Contribution profit per advertising won on settled orders."
+termination_condition = "Experiment concluded, stopped by its rule, or budget cap reached."
+
+[[charters]]
+role = "order_fulfillment"
+task = "Move paid orders to delivered: allocate stock or trigger supply, pack, ship, track exceptions."
+inputs = ["paid orders", "inventory lots", "carrier confirmations"]
+outputs = ["shipments with tracking", "exception list (delays, discrepancies, failed deliveries)"]
+tools = ["fulfillment service", "carrier adapters"]
+permissions = ["read:orders", "request:fulfillment_step", "request:supply"]
+max_concurrency = 3
+credit_allowance = 30
+success_metric = "Orders shipped within the promised window; delivery exceptions resolved within 2 days."
+termination_condition = "No paid order without a fulfillment in progress."
+
+[[charters]]
+role = "customer_support"
+task = "Answer customers and resolve returns and refunds within policy; escalate what needs more authority."
+inputs = ["customer messages", "order and shipment state", "refund policy"]
+outputs = ["replies", "refund proposals within policy", "escalations"]
+tools = ["payments service (refund proposals)", "fulfillment service (returns)"]
+permissions = ["read:orders", "propose:refund", "request:return"]
+max_concurrency = 3
+credit_allowance = 30
+success_metric = "Disputes per 100 orders under 0.5; replies within 12 hours."
+termination_condition = "Inbox empty or every open case escalated."
+
+[[charters]]
+role = "treasury_reconciliation"
+task = "Reconcile orders, processor records, settlements, supplier payments, shipping costs, refunds and disputes against the ledger."
+inputs = ["settlement files and processor events", "supplier receipts", "ledger entries"]
+outputs = ["reconciliation records (matched, mismatch, failed)", "provision and reserve review"]
+tools = ["ledger (read)", "reconciliation records", "guardrails"]
+permissions = ["read:ledger", "read:orders", "request:reconciliation", "propose:correction"]
+max_concurrency = 1
+credit_allowance = 40
+success_metric = "Every settlement matched within one business day; zero unexplained differences."
+termination_condition = "All open settlements reconciled or recorded as failed with a cause."
+
+[[charters]]
+role = "performance_analytics"
+task = "Report realized and provisional profit, cash, reserves, inventory age and agent contribution from the ledger."
+inputs = ["ledger metrics", "orders", "agent runs and credits"]
+outputs = ["periodic performance report with labelled estimates"]
+tools = ["metrics", "dashboard report"]
+permissions = ["read:ledger", "read:orders", "read:agents"]
+credit_allowance = 30
+success_metric = "Reports reconcile to the ledger to the won; decisions cite them."
+termination_condition = "Report delivered for the period."
+
+[[charters]]
+role = "engineering_improvement"
+task = "Propose and implement bounded code, prompt and workflow changes that remove a measured bottleneck."
+inputs = ["failure diagnostics", "performance reports", "backlog"]
+outputs = ["change proposals with hypothesis and rollback", "pull requests"]
+tools = ["repository", "test suite", "workflow engine (read)"]
+permissions = ["read:ledger", "read:agents", "propose:code_change", "propose:agent"]
+deadline_minutes = 240
+credit_allowance = 80
+success_metric = "Lower error rate, faster fulfillment or higher profit per credit after the change, measured by the evaluator."
+termination_condition = "Change merged and promoted, or rolled back, with the evaluator's verdict recorded."
+
+[[charters]]
+role = "quality_evaluation"
+task = "Independently judge whether a change or experiment worked, against historical cases and live outcomes."
+inputs = ["change or experiment record", "before and after metrics", "test results"]
+outputs = ["promote or roll back verdict with evidence"]
+tools = ["metrics", "test suite", "evidence store"]
+permissions = ["read:ledger", "read:orders", "read:agents", "evaluate:change", "evaluate:experiment"]
+credit_allowance = 40
+success_metric = "Verdicts that hold up: promoted changes keep their gain; rolled-back ones would have lost."
+termination_condition = "Verdict recorded for every change awaiting evaluation."
